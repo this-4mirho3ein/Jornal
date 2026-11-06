@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -7,6 +8,7 @@ import {
   type SwitcherAccount,
 } from "@/components/shared/account-switcher";
 import { SidebarNav } from "@/components/shared/sidebar-nav";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { UserMenu } from "@/components/shared/user-menu";
 import { getActiveAccount } from "@/features/accounts/active-account";
 import { connectionLevel } from "@/features/accounts/connection";
@@ -81,17 +83,28 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex min-w-0 items-center gap-2">
             <Link
               href="/dashboard"
-              className="shrink-0 text-sm font-semibold tracking-tight"
+              className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight"
             >
-              Trading Journal
+              <Image
+                src="/brand/logo.png"
+                alt=""
+                width={42}
+                height={28}
+                priority
+                className="rounded-md"
+              />
+              <span>Trading Journal</span>
             </Link>
             <Suspense fallback={<SwitcherFallback />}>
               <SwitcherArea />
             </Suspense>
           </div>
-          <Suspense fallback={<UserAreaFallback />}>
-            <UserArea />
-          </Suspense>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Suspense fallback={<UserAreaFallback />}>
+              <UserArea />
+            </Suspense>
+          </div>
         </div>
       </header>
 

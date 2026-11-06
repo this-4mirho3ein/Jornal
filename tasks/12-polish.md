@@ -15,6 +15,7 @@ Production-feel UX: every view has loading/empty/error/success states; first-run
 5. Mobile QA at 360/390/768/1024/1280/1536: bottom tab bar (Dashboard, Trades, Analytics, Accounts, More) with safe-area insets; tables→cards switch; filter bottom sheet; detail full-screen sticky header; no horizontal scroll at 360 px; charts horizontally scrollable if needed.
 6. Micro-copy + consistency: button variants, spacing rhythm 4/8 px, radius, border-not-shadow audit; loading text conventions.
 7. `next.config` reactCompiler if stable (verify docs) — re-render hygiene.
+8. **Branding & theming (added per owner, 2026-11):** the official "Trading Journal Growth" logo lives at `public/brand/logo.png` (square favicon/apple-icon already generated at `src/app/icon.png` + `src/app/apple-icon.png`). Finish: logo in header/login/OG image/PWA manifest icons (light-theme variant if needed); light/dark `ThemeToggle` (dark is default, §12.1) present in the app header **and** reachable on mobile; then QA every view in both themes.
 
 ## Verification (gate)
 
