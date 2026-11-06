@@ -26,6 +26,13 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   emailAndPassword: { enabled: true },
+  advanced: {
+    database: {
+      // §4.3 auth tables use uuid PKs with gen_random_uuid() defaults;
+      // Better Auth's default nanoid ids would fail the uuid cast.
+      generateId: "uuid",
+    },
+  },
   user: { modelName: "users" },
   session: { modelName: "sessions" },
   account: { modelName: "accounts_auth" },
