@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+build
+dist
+pnpm-lock.yaml
+drizzle
+coverage
+*.ico
+*.svg
