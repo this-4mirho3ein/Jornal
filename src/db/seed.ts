@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "@/lib/load-env";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { eq } from "drizzle-orm";

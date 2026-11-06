@@ -1,4 +1,4 @@
-import "dotenv/config"; // lets `auth` CLI find env when run outside Next
+import "@/lib/load-env"; // lets `auth` CLI + tsx scripts find env outside Next
 
 import { eq } from "drizzle-orm";
 import { betterAuth } from "better-auth";
