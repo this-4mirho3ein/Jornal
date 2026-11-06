@@ -81,6 +81,18 @@ async function main(): Promise<void> {
       .values({ id: SEED_USER_ID, email: ownerEmail, name: "Journal Owner" });
   }
 
+  // ---- Reset domain rows ----------------------------------------------------
+  // Fixed demo ids make re-running safe only if prior demo rows are wiped
+  // first (§0.8 idempotency); FK order: children before parents.
+  await db.delete(tradeDeals);
+  await db.delete(tradeEvents);
+  await db.delete(balanceSnapshots);
+  await db.delete(cashOperations);
+  await db.delete(trades);
+  await db.delete(magicStrategyMap);
+  await db.delete(strategies);
+  await db.delete(tradingAccounts);
+
   await db.insert(tradingAccounts).values([
     {
       id: LIVE_ACCOUNT_ID,
@@ -245,10 +257,10 @@ async function main(): Promise<void> {
     const tradeId = inserted[0].id;
 
     await db.insert(tradeDeals).values(
-      plan.deals.map((d) => ({
+      plan.deals.map((d, i) => ({
         tradeId,
         accountId: plan.accountId,
-        dealId: dealCounter,
+        dealId: dealCounter + i,
         orderId: d.orderId,
         entry: d.entry,
         price: d.price,
