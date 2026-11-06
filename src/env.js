@@ -19,6 +19,9 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.url(),
     /** Single-owner allowlist: registration closes once this email is registered. */
     OWNER_EMAIL: z.email(),
+    /** Ingest rate limiting (spec §5.1.3) — optional; unset ⇒ limit skipped (§19). */
+    UPSTASH_REDIS_REST_URL: z.string().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),
