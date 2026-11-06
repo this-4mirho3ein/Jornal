@@ -2,8 +2,14 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import Link from "next/link";
 
+import {
+  AccountSwitcher,
+  type SwitcherAccount,
+} from "@/components/shared/account-switcher";
 import { SidebarNav } from "@/components/shared/sidebar-nav";
 import { UserMenu } from "@/components/shared/user-menu";
+import { getActiveAccount } from "@/features/accounts/active-account";
+import { connectionLevel } from "@/features/accounts/connection";
 import { getCurrentUser } from "@/lib/auth/guards";
 
 export const metadata = {
@@ -20,14 +26,51 @@ async function UserArea() {
   const user = await getCurrentUser();
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
+      <span className="hidden text-xs text-muted-foreground sm:inline">
+        {user.email}
+      </span>
       <UserMenu name={user.name} email={user.email} />
     </div>
   );
 }
 
+/** Account switcher (spec §8.1) — streams in next to the brand link. */
+async function SwitcherArea() {
+  const user = await getCurrentUser();
+  const { account, accounts } = await getActiveAccount(user.id);
+  const now = new Date();
+
+  const items: SwitcherAccount[] = accounts.map((item) => ({
+    id: item.id,
+    displayName: item.displayName,
+    login: item.login,
+    broker: item.broker,
+    isDemo: item.isDemo,
+    currency: item.currency,
+    lastSeenAt: item.lastSeenAt,
+    level: connectionLevel(item.lastSeenAt, now),
+  }));
+  const currencies = new Set(accounts.map((item) => item.currency));
+
+  return (
+    <AccountSwitcher
+      accounts={items}
+      serverActiveId={account?.id ?? null}
+      allCurrencyUniform={currencies.size <= 1}
+    />
+  );
+}
+
 function UserAreaFallback() {
-  return <div className="bg-muted size-9 animate-pulse rounded-full" aria-hidden="true" />;
+  return (
+    <div className="size-9 animate-pulse rounded-full bg-muted" aria-hidden="true" />
+  );
+}
+
+function SwitcherFallback() {
+  return (
+    <div className="h-8 w-40 animate-pulse rounded-md bg-muted" aria-hidden="true" />
+  );
 }
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -35,9 +78,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
-          <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
-            Trading Journal
-          </Link>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-sm font-semibold tracking-tight"
+            >
+              Trading Journal
+            </Link>
+            <Suspense fallback={<SwitcherFallback />}>
+              <SwitcherArea />
+            </Suspense>
+          </div>
           <Suspense fallback={<UserAreaFallback />}>
             <UserArea />
           </Suspense>

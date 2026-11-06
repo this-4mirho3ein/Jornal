@@ -6,7 +6,7 @@ Date: 2026-11-06 · Phase 03 · Status: accepted
 
 Task 03 planned `pnpm dlx @better-auth/cli generate`. Every stable version of
 `@better-auth/cli` on npm (latest 1.4.21, release-1.4 1.4.22) is marked
-*deprecated — "Package no longer supported"*, and pulls an old better-auth 1.4
+_deprecated — "Package no longer supported"_, and pulls an old better-auth 1.4
 tree. The official docs (better-auth.com/docs/concepts/cli) now use an
 unscoped package simply named `auth` (`pnpm dlx auth@latest generate`), same
 repo (github.com/better-auth/better-auth) and maintainer — verified with
