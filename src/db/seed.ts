@@ -40,7 +40,15 @@ const STRATEGY_IDS = {
 
 const SETUPS = ["OB", "FVG", "SSL", "BSL", "Liquidity sweep", "Breaker"];
 const MISTAKES = ["moved SL", "no confirmation", "revenge", "early entry", "oversize"];
-const EMOTIONS = ["confident", "neutral", "uncertain", "fear", "greed", "fomo", "revenge"] as const;
+const EMOTIONS = [
+  "confident",
+  "neutral",
+  "uncertain",
+  "fear",
+  "greed",
+  "fomo",
+  "revenge",
+] as const;
 
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -52,54 +60,96 @@ async function main(): Promise<void> {
   const pool = new Pool({ connectionString: url, ssl: useSsl });
   const db = drizzle(pool);
 
-  // Idempotent reset — fixed UUIDs + cascade removes all seeded rows
+  // ---- Resolve the owner user ----------------------------------------------
+  // Demo data attaches to the real authenticated owner when one exists
+  // (matched via OWNER_EMAIL), so `pnpm dev` shows journal data after login.
+  // The owner's auth rows (sessions/credential account) are never deleted;
+  // only the fixed-uuid demo user from a previous seed run is reset.
+  const ownerEmail = process.env.OWNER_EMAIL ?? "owner@journal.local";
+  const existingOwner = (
+    await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, ownerEmail))
+      .limit(1)
+  )[0];
+  const ownerId = existingOwner?.id ?? SEED_USER_ID;
   await db.delete(users).where(eq(users.id, SEED_USER_ID));
-
-  await db.insert(users).values({
-    id: SEED_USER_ID,
-    email: "owner@journal.local",
-    name: "Journal Owner",
-  });
+  if (!existingOwner) {
+    await db
+      .insert(users)
+      .values({ id: SEED_USER_ID, email: ownerEmail, name: "Journal Owner" });
+  }
 
   await db.insert(tradingAccounts).values([
     {
-      id: LIVE_ACCOUNT_ID, userId: SEED_USER_ID,
-      displayName: "Prop Firm 100K", login: 51234567,
-      server: "ICMarketsSC-MT5", broker: "Raw Trading Ltd",
-      currency: "USD", isDemo: false,
-      ingestKeyHash: "seed-hash-live", ingestKeyPrefix: "seedli",
-      lastSeenAt: new Date(), lastBalance: "100000.00", lastEquity: "100000.00",
+      id: LIVE_ACCOUNT_ID,
+      userId: ownerId,
+      displayName: "Prop Firm 100K",
+      login: 51234567,
+      server: "ICMarketsSC-MT5",
+      broker: "Raw Trading Ltd",
+      currency: "USD",
+      isDemo: false,
+      ingestKeyHash: "seed-hash-live",
+      ingestKeyPrefix: "seedli",
+      lastSeenAt: new Date(),
+      lastBalance: "100000.00",
+      lastEquity: "100000.00",
     },
     {
-      id: DEMO_ACCOUNT_ID, userId: SEED_USER_ID,
-      displayName: "Strategy Lab (Demo)", login: 20987654,
-      server: "MetaQuotes-Demo", broker: "MetaQuotes Software Corp.",
-      currency: "USD", isDemo: true,
-      ingestKeyHash: "seed-hash-demo", ingestKeyPrefix: "seedde",
-      lastSeenAt: new Date(), lastBalance: "5000.00", lastEquity: "5000.00",
+      id: DEMO_ACCOUNT_ID,
+      userId: ownerId,
+      displayName: "Strategy Lab (Demo)",
+      login: 20987654,
+      server: "MetaQuotes-Demo",
+      broker: "MetaQuotes Software Corp.",
+      currency: "USD",
+      isDemo: true,
+      ingestKeyHash: "seed-hash-demo",
+      ingestKeyPrefix: "seedde",
+      lastSeenAt: new Date(),
+      lastBalance: "5000.00",
+      lastEquity: "5000.00",
     },
   ]);
 
   await db.insert(strategies).values([
     {
-      id: STRATEGY_IDS["ICT-SB"], userId: SEED_USER_ID,
-      name: "ICT Silver Bullet", code: "ICT-SB", color: "#3b82f6",
-      description: "NY AM ICT concept entries in the 1h window", defaultStyle: "scalp",
+      id: STRATEGY_IDS["ICT-SB"],
+      userId: ownerId,
+      name: "ICT Silver Bullet",
+      code: "ICT-SB",
+      color: "#3b82f6",
+      description: "NY AM ICT concept entries in the 1h window",
+      defaultStyle: "scalp",
     },
     {
-      id: STRATEGY_IDS["ICT-OB"], userId: SEED_USER_ID,
-      name: "ICT Order Block", code: "ICT-OB", color: "#10b981",
-      description: "Higher timeframe order block retests", defaultStyle: "swing",
+      id: STRATEGY_IDS["ICT-OB"],
+      userId: ownerId,
+      name: "ICT Order Block",
+      code: "ICT-OB",
+      color: "#10b981",
+      description: "Higher timeframe order block retests",
+      defaultStyle: "swing",
     },
     {
-      id: STRATEGY_IDS.LB, userId: SEED_USER_ID,
-      name: "London Breakout", code: "LB", color: "#f59e0b",
-      description: "Asia range breakout during London open", defaultStyle: "day",
+      id: STRATEGY_IDS.LB,
+      userId: ownerId,
+      name: "London Breakout",
+      code: "LB",
+      color: "#f59e0b",
+      description: "Asia range breakout during London open",
+      defaultStyle: "day",
     },
     {
-      id: STRATEGY_IDS.MR, userId: SEED_USER_ID,
-      name: "Mean Reversion", code: "MR", color: "#a855f7",
-      description: "Extreme reversion on H1 RSI", defaultStyle: "scalp",
+      id: STRATEGY_IDS.MR,
+      userId: ownerId,
+      name: "Mean Reversion",
+      code: "MR",
+      color: "#a855f7",
+      description: "Extreme reversion on H1 RSI",
+      defaultStyle: "scalp",
     },
   ]);
 
@@ -122,7 +172,9 @@ async function main(): Promise<void> {
   const plans: TradePlan[] = [];
   let positionId = 900000001;
   for (let i = 0; i < 40; i++) {
-    let when = new Date(start.getTime() + (i / 40) * 20 * 86400000 + ctx.rand() * 4 * 3600000);
+    let when = new Date(
+      start.getTime() + (i / 40) * 20 * 86400000 + ctx.rand() * 4 * 3600000,
+    );
     if (when.getUTCDay() === 6) when = new Date(when.getTime() + 2 * 86400000);
     if (when.getUTCDay() === 0) when = new Date(when.getTime() + 1 * 86400000);
     const accountId = ctx.rand() < 0.7 ? LIVE_ACCOUNT_ID : DEMO_ACCOUNT_ID;
@@ -132,7 +184,7 @@ async function main(): Promise<void> {
   plans.sort((a, b) => a.openedAt.getTime() - b.openedAt.getTime());
 
   let dealCounter = 100000001;
-  const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(ctx.rand() * arr.length)];
+  const pick = <T>(arr: readonly T[]): T => arr[Math.floor(ctx.rand() * arr.length)];
 
   for (const plan of plans) {
     const agg = aggregateTrade(plan);
@@ -183,7 +235,9 @@ async function main(): Promise<void> {
         emotion: isClosed && ctx.rand() < 0.5 ? pick(EMOTIONS) : null,
         setupTags: ctx.rand() < 0.6 ? [pick(SETUPS)] : [],
         mistakeTags:
-          isClosed && Number(agg.netProfit) < 0 && ctx.rand() < 0.5 ? [pick(MISTAKES)] : [],
+          isClosed && Number(agg.netProfit) < 0 && ctx.rand() < 0.5
+            ? [pick(MISTAKES)]
+            : [],
         closeReason: isClosed ? lastDeal.reason : null,
       })
       .returning({ id: trades.id });
@@ -259,5 +313,3 @@ main().catch((err: unknown) => {
   console.error("Seed failed:", err);
   process.exit(1);
 });
-
-

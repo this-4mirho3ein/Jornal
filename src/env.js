@@ -13,6 +13,12 @@ export const env = createEnv({
     DATABASE_URL: z.string().min(1),
     /** Unpooled Neon URL — migrations only. Falls back to DATABASE_URL locally. */
     DATABASE_URL_UNPOOLED: z.string().optional(),
+    /** Better Auth secret (spec §15.2) — required from phase 3 on. */
+    BETTER_AUTH_SECRET: z.string().min(16),
+    /** Public base URL — Better Auth trusted origin and callback base. */
+    BETTER_AUTH_URL: z.url(),
+    /** Single-owner allowlist: registration closes once this email is registered. */
+    OWNER_EMAIL: z.email(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),

@@ -20,7 +20,12 @@ import {
 
 export const directionEnum = pgEnum("direction", ["buy", "sell"]);
 export const tradeStatusEnum = pgEnum("trade_status", ["open", "closed"]);
-export const tradeStyleEnum = pgEnum("trade_style", ["scalp", "day", "swing", "position"]);
+export const tradeStyleEnum = pgEnum("trade_style", [
+  "scalp",
+  "day",
+  "swing",
+  "position",
+]);
 export const styleSourceEnum = pgEnum("style_source", ["auto", "manual"]);
 export const dealEntryEnum = pgEnum("deal_entry", ["in", "out", "inout", "out_by"]);
 export const dealReasonEnum = pgEnum("deal_reason", [
@@ -60,15 +65,94 @@ export const eventTypeEnum = pgEnum("event_type", [
 ]);
 
 /* ------------------------------------------------------------------ */
-/* users — owned by Better Auth from task 03 (minimal shape for now)   */
+/* Auth (Better Auth 1.7.18, spec §15.2)                               */
+/* Field names below MUST stay alias-compatible with Better Auth's     */
+/* core schemas (user/session/account/verification). Table names are   */
+/* mapped in src/lib/auth/server.ts via the drizzle adapter schema map. */
 /* ------------------------------------------------------------------ */
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
 });
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("sessions_user_id_idx").on(t.userId)],
+);
+
+/**
+ * Better Auth's OAuth/credential `account` model, renamed to avoid any
+ * future clash with the domain's trading-account concept (spec §4.3).
+ */
+export const accountsAuth = pgTable(
+  "accounts_auth",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    idToken: text("id_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", {
+      withTimezone: true,
+    }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    unique("accounts_auth_provider_account_uq").on(t.providerId, t.accountId),
+    index("accounts_auth_user_id_idx").on(t.userId),
+  ],
+);
+
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("verifications_identifier_idx").on(t.identifier)],
+);
 
 /* ------------------------------------------------------------------ */
 /* trading_accounts (spec §4.3)                                        */
@@ -196,8 +280,14 @@ export const trades = pgTable(
     notes: text("notes"),
     rating: integer("rating"),
     emotion: emotionEnum("emotion"),
-    setupTags: text("setup_tags").array().default(sql`'{}'::text[]`).notNull(),
-    mistakeTags: text("mistake_tags").array().default(sql`'{}'::text[]`).notNull(),
+    setupTags: text("setup_tags")
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    mistakeTags: text("mistake_tags")
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
     closeReason: dealReasonEnum("close_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -347,6 +437,9 @@ export const cashOperations = pgTable(
 /* ------------------------------------------------------------------ */
 
 export type User = typeof users.$inferSelect;
+export type AuthSession = typeof sessions.$inferSelect;
+export type AuthAccount = typeof accountsAuth.$inferSelect;
+export type AuthVerification = typeof verifications.$inferSelect;
 export type TradingAccount = typeof tradingAccounts.$inferSelect;
 export type NewTradingAccount = typeof tradingAccounts.$inferInsert;
 export type Strategy = typeof strategies.$inferSelect;

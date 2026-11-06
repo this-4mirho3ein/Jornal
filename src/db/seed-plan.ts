@@ -33,28 +33,58 @@ export interface SymbolMeta {
 
 export const SYMBOLS: Record<string, SymbolMeta> = {
   XAUUSD: {
-    base: 2350, digits: 2, tickSize: 0.01, tickValue: 1,
-    volume: [0.1, 0.5], slRange: [2, 8, 2], entryJitter: 4,
+    base: 2350,
+    digits: 2,
+    tickSize: 0.01,
+    tickValue: 1,
+    volume: [0.1, 0.5],
+    slRange: [2, 8, 2],
+    entryJitter: 4,
   },
   EURUSD: {
-    base: 1.085, digits: 5, tickSize: 0.00001, tickValue: 1,
-    volume: [0.2, 1.0], slRange: [0.0008, 0.004, 5], entryJitter: 0.003,
+    base: 1.085,
+    digits: 5,
+    tickSize: 0.00001,
+    tickValue: 1,
+    volume: [0.2, 1.0],
+    slRange: [0.0008, 0.004, 5],
+    entryJitter: 0.003,
   },
   GBPUSD: {
-    base: 1.272, digits: 5, tickSize: 0.00001, tickValue: 1,
-    volume: [0.1, 0.8], slRange: [0.0008, 0.004, 5], entryJitter: 0.003,
+    base: 1.272,
+    digits: 5,
+    tickSize: 0.00001,
+    tickValue: 1,
+    volume: [0.1, 0.8],
+    slRange: [0.0008, 0.004, 5],
+    entryJitter: 0.003,
   },
   NAS100: {
-    base: 18500, digits: 1, tickSize: 0.1, tickValue: 1,
-    volume: [0.5, 2.0], slRange: [15, 80, 1], entryJitter: 60,
+    base: 18500,
+    digits: 1,
+    tickSize: 0.1,
+    tickValue: 1,
+    volume: [0.5, 2.0],
+    slRange: [15, 80, 1],
+    entryJitter: 60,
   },
   BTCUSD: {
-    base: 68000, digits: 2, tickSize: 0.01, tickValue: 0.01,
-    volume: [0.05, 0.3], slRange: [250, 1200, 0], entryJitter: 500,
+    base: 68000,
+    digits: 2,
+    tickSize: 0.01,
+    tickValue: 0.01,
+    volume: [0.05, 0.3],
+    slRange: [250, 1200, 0],
+    entryJitter: 500,
   },
 };
 
-export const MAGIC_TO_STRATEGY = { 1001: "ICT-SB", 1002: "ICT-OB", 1003: "LB", 1004: "MR" } as const;
+export const MAGIC_TO_STRATEGY = {
+  1001: "ICT-SB",
+  1002: "ICT-OB",
+  1003: "LB",
+  1004: "MR",
+} as const;
 
 export interface DealPlan {
   dealId: number;
@@ -94,7 +124,12 @@ export interface PlanContext {
 }
 
 /** between(min,max) using the context RNG with fixed digits. */
-export function between(ctx: PlanContext, min: number, max: number, digits = 2): number {
+export function between(
+  ctx: PlanContext,
+  min: number,
+  max: number,
+  digits = 2,
+): number {
   return Number((min + ctx.rand() * (max - min)).toFixed(digits));
 }
 
@@ -208,7 +243,8 @@ export function buildTrade(
       const partialVolume = Number((volume / 2).toFixed(2));
       const finalVolume = Number((volume - partialVolume).toFixed(2));
       const partialExit = entry + dirSign * (exitDistance / 2);
-      const partialGross = (partialExit - entry) * moneyPerUnit * partialVolume * dirSign;
+      const partialGross =
+        (partialExit - entry) * moneyPerUnit * partialVolume * dirSign;
 
       deals.push({
         dealId: baseDealId + dealNo,
@@ -299,7 +335,8 @@ export function aggregateTrade(plan: TradePlan): TradeAggregates {
   const volumeOpened = ins.reduce((s, d) => s + Number(d.volume), 0);
   const volumeClosed = outs.reduce((s, d) => s + Number(d.volume), 0);
   const avgEntry =
-    ins.reduce((s, d) => s + Number(d.price) * Number(d.volume), 0) / (volumeOpened || 1);
+    ins.reduce((s, d) => s + Number(d.price) * Number(d.volume), 0) /
+    (volumeOpened || 1);
   const avgExit =
     volumeClosed > 0
       ? outs.reduce((s, d) => s + Number(d.price) * Number(d.volume), 0) / volumeClosed
@@ -328,7 +365,9 @@ export function aggregateTrade(plan: TradePlan): TradeAggregates {
     ? Number(((slDistance / sym.tickSize) * sym.tickValue * volumeOpened).toFixed(2))
     : null;
   const rMultiple =
-    riskAmount !== null && riskAmount > 0 ? Number((netProfit / riskAmount).toFixed(4)) : null;
+    riskAmount !== null && riskAmount > 0
+      ? Number((netProfit / riskAmount).toFixed(4))
+      : null;
   const pipsOrPoints =
     avgExit !== null
       ? (plan.direction === "buy" ? avgExit - avgEntry : avgEntry - avgExit).toFixed(5)

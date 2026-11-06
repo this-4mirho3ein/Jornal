@@ -8,6 +8,13 @@
       "when": 1793970698044,
       "tag": "0000_exotic_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793971927879,
+      "tag": "0001_unknown_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }

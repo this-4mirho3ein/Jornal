@@ -14,7 +14,10 @@ async function main() {
   }
   const pool = new Pool({
     connectionString: url,
-    ssl: url.includes("localhost") || url.includes("127.0.0.1") ? undefined : { rejectUnauthorized: false },
+    ssl:
+      url.includes("localhost") || url.includes("127.0.0.1")
+        ? undefined
+        : { rejectUnauthorized: false },
   });
   const db = drizzle(pool);
   await migrate(db, { migrationsFolder: "./drizzle" });
