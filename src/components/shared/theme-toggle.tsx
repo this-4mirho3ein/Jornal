@@ -3,41 +3,46 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 /**
- * Light/dark switcher (spec §12.1–12.2 — dark is the default).
- * The icon swaps via CSS on the `.dark` html class — next-themes applies the
- * class in a blocking pre-paint script, so there is no mounted state, no
- * effect, and no hydration mismatch.
+ * Light/dark switch (spec §12.1–12.2 — dark is the default).
+ * Pure-CSS state: the `.dark` class next-themes applies pre-paint moves the
+ * knob and swaps the glyphs, so there is no mounted state, no effect, and no
+ * hydration mismatch. Clicking reads the live class and flips an explicit
+ * light/dark; until the first click the configured default still applies.
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme } = useTheme();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={className}
-          aria-label="Switch theme"
-        >
-          <Sun className="hidden size-4 dark:block" aria-hidden="true" />
-          <Moon className="size-4 dark:hidden" aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>Dark</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>System</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <button
+      type="button"
+      aria-label="Toggle dark mode"
+      onClick={() =>
+        setTheme(
+          document.documentElement.classList.contains("dark")
+            ? "light"
+            : "dark",
+        )
+      }
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-input transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-foreground/15",
+        className,
+      )}
+    >
+      <Moon
+        className="absolute left-1 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
+      <Sun
+        className="absolute right-1 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
+      <span
+        aria-hidden="true"
+        className="absolute left-1 top-1/2 size-4 -translate-y-1/2 rounded-full bg-background shadow-sm transition-transform dark:translate-x-6"
+      />
+    </button>
   );
 }
