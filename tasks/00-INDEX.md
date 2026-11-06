@@ -19,8 +19,8 @@ Source of truth: `/TRADING_JOURNAL_SPEC.md` (repo root). This folder breaks spec
 
 | #   | File                                                     | Phase                                            | Key spec sections | Status    | Gate                      |
 | --- | -------------------------------------------------------- | ------------------------------------------------ | ----------------- | --------- | ------------------------- |
-| 01  | [01-scaffold.md](./01-scaffold.md)                       | Next.js scaffold + shadcn/ui + tooling           | §2, §12.1, §15.3  | ☐ pending | typecheck/lint/test/build |
-| 02  | [02-database.md](./02-database.md)                       | Drizzle schema, migrations, seed                 | §4.3, §7          | ☐ pending | migrate OK, build         |
+| 01  | [01-scaffold.md](./01-scaffold.md)                       | Next.js scaffold + shadcn/ui + tooling           | §2, §12.1, §15.3  | ✅ done    | typecheck/lint/test/build |
+| 02  | [02-database.md](./02-database.md)                       | Drizzle schema, migrations, seed                 | §4.3, §7          | ✅ done (migrate+seed pending local Postgres/Docker — run after Docker or Neon URL available) | migrate OK, build |
 | 03  | [03-auth.md](./03-auth.md)                               | Better Auth, owner-only, app guard               | §2, §15.2         | ☐ pending | login flow works, build   |
 | 04  | [04-accounts.md](./04-accounts.md)                       | Accounts CRUD, ingest keys, switcher             | §5.3, §8.1        | ☐ pending | gate + UI smoke           |
 | 05  | [05-ingest-api.md](./05-ingest-api.md)                   | Ingest API + reducer + tests + fake-event script | §4.2, §5, §6.2    | ☐ pending | reducer unit tests pass   |

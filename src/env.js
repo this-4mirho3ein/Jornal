@@ -9,6 +9,10 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     NODE_ENV: z.enum(["development", "test", "production"]).optional(),
+    /** Pooled Neon URL — runtime queries (spec §7). */
+    DATABASE_URL: z.string().min(1),
+    /** Unpooled Neon URL — migrations only. Falls back to DATABASE_URL locally. */
+    DATABASE_URL_UNPOOLED: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),
