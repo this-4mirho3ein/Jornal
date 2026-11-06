@@ -60,7 +60,13 @@ export const positionWireSchema = z.object({
     .max(200)
     .optional()
     .transform((s) => (s === undefined ? undefined : s.trim())),
-  volume: num.positive(),
+  /**
+   * Current open volume after this event (§4.2). 0 is valid — the EA emits
+   * `volume: 0` when the position is already fully closed (spec §6
+   * BuildClosedPositionJson). Aggregation is deal-driven, so this field is
+   * informational only; it must never be required positive.
+   */
+  volume: num.min(0),
   /** 0 = none (§4.2) — reducer maps it to null. */
   sl: num.min(0),
   /** 0 = none (§4.2) — reducer maps it to null. */

@@ -21,4 +21,8 @@ Quality gates:
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
 
-Full setup (database, EA install, deployment) is documented in phase 15 — see `tasks/15-docs-deploy.md`.
+## MT5 connection
+
+MetaTrader 5 trades sync to this journal through the **`JournalSync.mq5`** Expert Advisor (desktop MT5 + WebRequest). Install, testing and troubleshooting: **[mt5/README.md](./mt5/README.md)**. Without MT5, the whole ingest pipeline can be exercised with `scripts/send-fake-event.ts`.
+
+Full setup (database, deployment) is documented in phase 15 — see `tasks/15-docs-deploy.md`.
