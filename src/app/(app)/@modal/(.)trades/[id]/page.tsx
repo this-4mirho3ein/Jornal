@@ -3,11 +3,16 @@ import { Suspense } from "react";
 import { TradeDetailSections } from "@/app/(app)/trades/[id]/trade-detail";
 import { TradeSheet } from "@/app/(app)/trades/[id]/trade-sheet";
 
+// The overlay renders through the client drawer immediately, but its visible
+// output lives in a client-hosted subtree, so instant-nav validation cannot
+// attribute it to this segment. Opt this one segment out; navigation falls
+// back to the classic server render for the sheet, which still opens on click.
+export const instant = false;
+
 /**
  * §8.2 — intercepting side sheet: clicking a trade row in /trades opens the
  * detail here; direct URLs still get /trades/[id] as a deep-linkable page.
- * Instant-navigation rule: this segment renders SYNCHRONOUSLY — the params
- * promise is awaited only inside the Suspense boundary below, never here.
+ * The params promise is awaited only inside the Suspense boundary below.
  */
 export default function InterceptedTradeDetail({
   params,
