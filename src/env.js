@@ -17,8 +17,10 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(16),
     /** Public base URL — Better Auth trusted origin and callback base. */
     BETTER_AUTH_URL: z.url(),
-    /** Single-owner allowlist: registration closes once this email is registered. */
+    /** Single-owner allowlist: used only when SIGNUP_MODE=owner (ADR 0009). */
     OWNER_EMAIL: z.email(),
+    /** Registration mode (ADR 0009): open by default; "owner" = §15.2 allowlist. */
+    SIGNUP_MODE: z.enum(["owner", "open"]).optional(),
     /** Ingest rate limiting (spec §5.1.3) — optional; unset ⇒ limit skipped (§19). */
     UPSTASH_REDIS_REST_URL: z.string().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

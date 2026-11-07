@@ -56,8 +56,11 @@ export default function MarketingLayout({
               FAQ
             </a>
             <ThemeToggle />
-            <Button asChild size="sm">
+            <Button asChild size="sm" variant="ghost">
               <a href="/login">Sign in</a>
+            </Button>
+            <Button asChild size="sm">
+              <a href="/register">Get started</a>
             </Button>
           </nav>
         </div>
@@ -74,6 +77,9 @@ export default function MarketingLayout({
             </a>
             <Link className="transition-colors hover:text-foreground" href="/login">
               Sign in
+            </Link>
+            <Link className="transition-colors hover:text-foreground" href="/register">
+              Get started
             </Link>
           </nav>
         </div>

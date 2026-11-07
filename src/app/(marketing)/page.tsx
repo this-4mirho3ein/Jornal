@@ -77,7 +77,7 @@ const FAQ = [
   },
   {
     q: "Is my trading data private?",
-    a: "Yes. The journal is a single-owner installation behind login: only one email address is allowed to register, all app pages are marked noindex, the ingest endpoint is rate-limited and requires a per-account key, and screenshots live in private blob storage.",
+    a: "Yes. Every journal account is private to its owner: app pages require login and are marked noindex, all queries are scoped to your own account, and the MT5 ingest endpoint requires a per-account key that only you hold.",
   },
   {
     q: "Do I have to import trades manually?",
@@ -224,14 +224,14 @@ export default function LandingPage() {
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
-                <Link href="/login">Open your journal</Link>
+                <Link href="/register">Get started — free</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <a href="#how">See how it works</a>
               </Button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              Single-owner install — your data never leaves your own database.
+              Free to start — every account sees only its own trades.
             </p>
           </div>
           <DashboardMock />
@@ -335,7 +335,7 @@ export default function LandingPage() {
             itself.
           </p>
           <Button asChild size="lg" className="mt-6">
-            <Link href="/login">Open your journal</Link>
+            <Link href="/register">Create your free account</Link>
           </Button>
         </div>
       </section>

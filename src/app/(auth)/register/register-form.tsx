@@ -33,9 +33,9 @@ export default function RegisterForm() {
 
   async function onSubmit(values: RegisterValues) {
     setFormError(null);
-    // Server-side owner-policy hook (lib/auth/server) still decides: only the
-    // configured owner email may register, and only once. This form surfaces
-    // its generic verdict verbatim (no signal about which check failed).
+    // Registration policy (ADR 0009): open by default; SIGNUP_MODE=owner
+    // restores the single-owner allowlist (lib/auth/signup-policy), whose
+    // verdict is surfaced verbatim (no signal about which check failed).
     const { error } = await authClient.signUp.email({
       name: values.name,
       email: values.email,
@@ -102,7 +102,7 @@ export default function RegisterForm() {
         {isSubmitting ? "Creating account…" : "Create account"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Owner-only install: a single account can ever be created.
+        Free account — your trades stay private to your login.
       </p>
     </form>
   );

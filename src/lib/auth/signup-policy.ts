@@ -1,9 +1,16 @@
 /**
- * Owner-allowlist predicate (spec §15.2): exactly one user (OWNER_EMAIL) may
- * ever register, and only while no credential account exists yet.
+ * Registration policy (ADR 0009): sign-up is open by default so every trader
+ * can create their own private journal. `SIGNUP_MODE=owner` restores the
+ * original spec §15.2 single-owner allowlist — exactly OWNER_EMAIL, and only
+ * while no credential account exists yet.
+ *
  * Pure function — the Better Auth hook in lib/auth/server wires env + DB.
  */
-export interface OwnerSignUpCheck {
+export type SignUpMode = "owner" | "open";
+
+export interface SignUpCheck {
+  /** Registration mode resolved from SIGNUP_MODE (default: "open"). */
+  mode: SignUpMode;
   /** Email from the sign-up request (any case — normalized here). */
   email: string;
   /** OWNER_EMAIL from the server env (any case/whitespace — normalized here). */
@@ -12,11 +19,13 @@ export interface OwnerSignUpCheck {
   ownerAlreadyRegistered: boolean;
 }
 
-export function isOwnerAllowedToSignUp({
+export function isSignUpAllowed({
+  mode,
   email,
   ownerEmail,
   ownerAlreadyRegistered,
-}: OwnerSignUpCheck): boolean {
+}: SignUpCheck): boolean {
+  if (mode === "open") return true;
   if (!ownerEmail) return false;
   const requested = email.trim().toLowerCase();
   const allowed = ownerEmail.trim().toLowerCase();

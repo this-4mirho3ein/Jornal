@@ -9,10 +9,12 @@ import { nextCookies } from "better-auth/next-js";
 import { accountsAuth, sessions, users, verifications } from "@/db/schema";
 import { db } from "@/db/client";
 import { env } from "@/env";
-import { isOwnerAllowedToSignUp } from "@/lib/auth/owner-policy";
+import { isSignUpAllowed, type SignUpMode } from "@/lib/auth/signup-policy";
 
 /**
- * Better Auth instance (spec §2, §15.2) — single-owner email/password auth.
+ * Better Auth instance (spec §2; registration per ADR 0009) — email/password
+ * auth with open registration by default (SIGNUP_MODE=owner restores the
+ * original §15.2 single-owner allowlist).
  *
  * Models are mapped onto the §4.3 tables:
  *   user          → users
@@ -52,6 +54,14 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/sign-up/email") return;
 
+      // ADR 0009 — open registration by default; SIGNUP_MODE=owner restores
+      // the original §15.2 single-owner allowlist. In open mode skip the DB
+      // probe entirely: Better Auth still rejects duplicate emails, and its
+      // built-in production rate limiter (in-memory, 100 req / 10s) shields
+      // the endpoint; Upstash-backed limits stay deferred (§19, task 14).
+      const mode: SignUpMode = env.SIGNUP_MODE === "owner" ? "owner" : "open";
+      if (mode === "open") return;
+
       const email =
         typeof ctx.body?.email === "string" ? ctx.body.email.toLowerCase() : "";
       const credentialExists = await db
@@ -60,7 +70,8 @@ export const auth = betterAuth({
         .where(eq(accountsAuth.providerId, "credential"))
         .limit(1);
 
-      const allowed = isOwnerAllowedToSignUp({
+      const allowed = isSignUpAllowed({
+        mode,
         email,
         ownerEmail: env.OWNER_EMAIL,
         ownerAlreadyRegistered: credentialExists.length > 0,

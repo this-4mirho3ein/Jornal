@@ -86,14 +86,13 @@ export default function LoginForm() {
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Owner-only install —{" "}
+        New here?{" "}
         <Link
           href="/register"
           className="font-medium text-foreground underline-offset-4 hover:underline"
         >
-          create the owner account
-        </Link>{" "}
-        (once).
+          Create your free account
+        </Link>
       </p>
     </form>
   );

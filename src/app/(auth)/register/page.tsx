@@ -32,7 +32,7 @@ export default function RegisterPage() {
         />
         <span className="text-lg font-semibold tracking-tight">Trading Journal</span>
         <span className="text-sm text-muted-foreground">
-          Create the journal owner account
+          Create your trading journal
         </span>
       </div>
       <RegisterForm />
