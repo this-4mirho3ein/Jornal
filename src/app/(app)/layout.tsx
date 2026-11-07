@@ -10,6 +10,7 @@ import {
   type SwitcherAccount,
 } from "@/components/shared/account-switcher";
 import { ConnectionDot } from "@/components/shared/connection-dot";
+import { MobileTabBar } from "@/components/shared/mobile-tab-bar";
 import { SidebarNav } from "@/components/shared/sidebar-nav";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { UserMenu } from "@/components/shared/user-menu";
@@ -122,7 +123,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6">
+      {/* Extra bottom padding on mobile clears the tab bar + safe area (§12.2) */}
+      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-6 md:pb-6">
         <aside className="hidden w-48 shrink-0 md:block">
           {/* usePathname() is URL data — stream the nav like the switcher */}
           <Suspense
@@ -139,6 +141,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      {/* §12.2 — sidebar collapses to a bottom tab bar on mobile
+          (usePathname is URL data — stream it like the sidebar nav) */}
+      <Suspense fallback={null}>
+        <MobileTabBar />
+      </Suspense>
 
       {/* §6.5 — lives outside the visible tree: subscribes (or polls, flag
           off) and refreshes/toasts on trade events; renders null either way */}

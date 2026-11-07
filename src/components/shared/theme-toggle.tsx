@@ -27,7 +27,8 @@ export function ThemeToggle({ className }: { className?: string }) {
         )
       }
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-input transition-colors outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-foreground/15",
+        // ::before extends the 24px-tall switch to a 44px touch target (§12.1)
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full bg-input transition-colors outline-none outline-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background before:absolute before:inset-x-0 before:-inset-y-2.5 before:rounded-lg before:content-[''] dark:bg-foreground/15",
         className,
       )}
     >

@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: "/settings", label: "Settings" },
 ] as const;
 
-/** Sidebar skeleton — mobile bottom tab bar arrives with polish (task 12). */
+/** Desktop sidebar nav — on mobile the same destinations live in the bottom tab bar. */
 export function SidebarNav() {
   const pathname = usePathname();
 

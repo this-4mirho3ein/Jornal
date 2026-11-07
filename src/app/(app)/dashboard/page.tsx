@@ -1,5 +1,4 @@
 import {
-  Activity,
   Percent,
   Scale,
   Target,
@@ -15,7 +14,7 @@ import { EquityCurveLazy } from "@/components/charts/charts-lazy";
 import { PnlHeatmap } from "@/components/charts/pnl-heatmap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/shared/empty-state";
+import { OnboardingChecklist } from "@/components/shared/onboarding-checklist";
 import { StatCard } from "@/components/shared/stat-card";
 import { PeriodChips } from "@/components/shared/period-chips";
 import { PnlText } from "@/components/shared/pnl-text";
@@ -24,6 +23,7 @@ import {
   getDailyPnl,
   getDashboardKpis,
   getEquitySeries,
+  getOnboardingProgress,
   getRecentTrades,
   parseDashboardPeriod,
   resolveDashboardScope,
@@ -65,12 +65,13 @@ async function DashboardContent({
   const now = new Date(); // request time (streamed subtree)
   const startIso = periodStartIso(period, now);
 
-  const [kpis, lites, equity, daily, recent] = await Promise.all([
+  const [kpis, lites, equity, daily, recent, onboarding] = await Promise.all([
     getDashboardKpis(scope.userId, scope.accountId, startIso),
     getClosedTradeLites(scope.userId, scope.accountId, startIso),
     getEquitySeries(scope.userId, scope.accountId, startIso),
     getDailyPnl(scope.userId, scope.accountId, startIso, scope.timezone),
     getRecentTrades(scope.userId, scope.accountId, 5),
+    getOnboardingProgress(scope.userId),
   ]);
 
   const closedLites = lites.map((l) => ({ netProfit: l.netProfit, rMultiple: l.rMultiple }));
@@ -99,19 +100,10 @@ async function DashboardContent({
     },
   );
 
-  if (kpis.closed === 0 && kpis.open === 0) {
-    return (
-      <EmptyState
-        icon={Activity}
-        title="Nothing to show yet"
-        description="Attach the EA to one MT5 chart — trades, equity and every metric fill in automatically."
-        action={
-          <Button asChild size="sm">
-            <Link href="/accounts">Set up the EA in Accounts</Link>
-          </Button>
-        }
-      />
-    );
+  // §12.4 onboarding: before the first trade arrives the dashboard IS the
+  // checklist (user-wide, derived from the DB; dismissible client-side).
+  if (!onboarding.hasTrades) {
+    return <OnboardingChecklist progress={onboarding} />;
   }
 
   return (

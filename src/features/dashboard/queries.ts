@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, sql, type SQL } from "drizzle-orm";
 import { cacheTag, revalidateTag } from "next/cache";
 
 import { db } from "@/db/client";
@@ -264,3 +264,39 @@ export async function getRecentTrades(
   }));
 }
 
+
+/** Onboarding checklist progress (§12.4) — user-wide, derived from the DB. */
+export interface OnboardingProgress {
+  hasAccount: boolean;
+  hasKey: boolean;
+  hasHeartbeat: boolean;
+  hasTrades: boolean;
+}
+
+/**
+ * First-run state for the dashboard checklist (§12.4): account exists / ingest
+ * key created / EA heartbeat seen (`last_seen_at`) / first trade received.
+ * Deliberately uncached — it reads on every dashboard render so the EA
+ * connection step flips the moment a heartbeat lands.
+ */
+export async function getOnboardingProgress(userId: string): Promise<OnboardingProgress> {
+  const accounts = await db
+    .select({
+      ingestKeyPrefix: tradingAccounts.ingestKeyPrefix,
+      lastSeenAt: tradingAccounts.lastSeenAt,
+    })
+    .from(tradingAccounts)
+    .where(eq(tradingAccounts.userId, userId));
+  const [totaled] = await db
+    .select({ n: count() })
+    .from(trades)
+    .innerJoin(tradingAccounts, eq(trades.accountId, tradingAccounts.id))
+    .where(eq(tradingAccounts.userId, userId));
+
+  return {
+    hasAccount: accounts.length > 0,
+    hasKey: accounts.some((account) => account.ingestKeyPrefix.length > 0),
+    hasHeartbeat: accounts.some((account) => account.lastSeenAt !== null),
+    hasTrades: (totaled?.n ?? 0) > 0,
+  };
+}
