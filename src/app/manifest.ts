@@ -3,9 +3,11 @@ import type { MetadataRoute } from "next";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site-url";
 
 /**
- * PWA-lite manifest (§14): add-to-home-screen for the journal app.
- * Icons come from the app/ metadata file conventions (/icon.png, 512×512).
- * start_url opens the journal; signed-out visitors are redirected to login.
+ * PWA manifest (§14): installable add-to-home-screen journal. Icons are
+ * generated from public/brand/logo.png by scripts/generate-icons.mjs and
+ * committed under public/icons/ — 192/512 for "any", plus "maskable" twins
+ * (the emblem already sits inside the 80% safe zone). start_url opens the
+ * journal; signed-out visitors are redirected to login.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -22,13 +24,23 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["finance", "productivity"],
     icons: [
       {
-        src: "/icon.png",
-        sizes: "512x512",
+        src: "/icons/icon-192.png",
+        sizes: "192x192",
         type: "image/png",
-        purpose: "any",
       },
       {
-        src: "/icon.png",
+        src: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+      {
+        src: "/icons/icon-maskable-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: "/icons/icon-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

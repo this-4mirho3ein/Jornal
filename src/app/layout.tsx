@@ -1,13 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { RegisterServiceWorker } from "@/components/shared/register-service-worker";
 import { ThemeProvider } from "@/components/theme-provider";
-import {
-  SITE_DESCRIPTION,
-  SITE_NAME,
-  SITE_TITLE,
-  siteUrl,
-} from "@/lib/site-url";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 /** UI font (§12.1) */
@@ -49,6 +45,12 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+  /** iOS standalone install (§14 PWA): styled status bar + home-screen label. */
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default" as const,
+  },
 };
 
 export const viewport: Viewport = {
@@ -75,6 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem={false}
           disableTransitionOnChange
         >
+          <RegisterServiceWorker />
           {children}
           <Toaster />
         </ThemeProvider>
