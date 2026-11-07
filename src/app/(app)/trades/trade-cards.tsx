@@ -5,6 +5,7 @@ import { StrategyBadge } from "@/components/shared/strategy-badge";
 import { StyleBadge } from "@/components/shared/style-badge";
 import type { TradeListRow } from "@/features/trades/queries";
 import { formatDateTimeShortInTz, formatDuration } from "@/lib/format";
+import Link from "next/link";
 
 /**
  * Mobile trade cards (spec §12.2) — same rows as the desktop table, switched
@@ -23,7 +24,13 @@ export function TradeCards({
         <li key={row.id} className="rounded-xl border p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 font-medium">
-              {row.symbol}
+              <Link
+                href={`/trades/${row.id}`}
+                scroll={false}
+                className="underline-offset-4 hover:underline"
+              >
+                {row.symbol}
+              </Link>
               <DirectionBadge direction={row.direction} />
             </span>
             <PnlText value={row.netProfit} />

@@ -17,6 +17,7 @@ import {
   formatDuration,
   formatRMultiple,
 } from "@/lib/format";
+import Link from "next/link";
 
 /**
  * Desktop table (spec §12.2) — plain server-rendered markup: sorting/filtering
@@ -56,7 +57,16 @@ export function TradeTable({
                   ? formatDateTimeShortInTz(row.openedAt, timezone)
                   : "—"}
               </TableCell>
-              <TableCell className="font-medium">{row.symbol}</TableCell>
+              <TableCell className="font-medium">
+                {/* Sheet interception + deep link (§8.2) */}
+                <Link
+                  href={`/trades/${row.id}`}
+                  scroll={false}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {row.symbol}
+                </Link>
+              </TableCell>
               <TableCell>
                 <DirectionBadge direction={row.direction} />
               </TableCell>

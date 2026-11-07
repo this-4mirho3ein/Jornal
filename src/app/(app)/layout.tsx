@@ -115,7 +115,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6">
         <aside className="hidden w-48 shrink-0 md:block">
-          <SidebarNav />
+          {/* usePathname() is URL data — stream the nav like the switcher */}
+          <Suspense
+            fallback={
+              <nav aria-hidden="true" className="flex flex-col gap-1">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-8 animate-pulse rounded-md bg-muted" />
+                ))}
+              </nav>
+            }
+          >
+            <SidebarNav />
+          </Suspense>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
