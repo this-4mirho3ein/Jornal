@@ -62,7 +62,6 @@ export function TradeTable({
                 {/* Sheet interception + deep link (§8.2) */}
                 <Link
                   href={`/trades/${row.id}`}
-                  scroll={false}
                   className="underline-offset-4 hover:underline"
                 >
                   {row.symbol}

@@ -24,7 +24,6 @@ export function TradeCards({
           {/* Stretched link: the whole card navigates (§8.2 row UX) */}
           <Link
             href={`/trades/${row.id}`}
-            scroll={false}
             aria-label={`Open ${row.symbol} trade details`}
             className="after:absolute after:inset-0 after:rounded-xl after:content-['']"
           >

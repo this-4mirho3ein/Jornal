@@ -2,7 +2,7 @@
 
 import { Check, Loader2, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useOptimistic, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,12 @@ const EMOTIONS = [
   "revenge",
 ] as const;
 
-const STYLE_LABELS = { scalp: "Scalp", day: "Day", swing: "Swing", position: "Position" } as const;
+const STYLE_LABELS = {
+  scalp: "Scalp",
+  day: "Day",
+  swing: "Swing",
+  position: "Position",
+} as const;
 const EMOTION_LABELS = {
   confident: "Confident",
   neutral: "Neutral",
@@ -99,31 +104,26 @@ interface JournalFormProps {
 }
 
 /**
- * §8.2 #4/#6 — journal editor with 800 ms debounced autosave. State lives in
- * `useOptimistic` over the server snapshot, so every render after a save
- * rebases on fresh server data (e.g. a style re-classification).
+ * §8.2 #4/#6 — journal editor with 800 ms debounced autosave. Values live in
+ * plain local state so every control answers instantly (ratings, style,
+ * tags); the debounced save flushes diffs and the footer shows the status.
  */
 export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormProps) {
   const router = useRouter();
-  const [optimistic, applyOptimistic] = useOptimistic(
-    toValues(initial),
-    (current: JournalValues, patch: Partial<JournalValues>) => ({
-      ...current,
-      ...patch,
-    }),
-  );
+  const [values, setValues] = useState<JournalValues>(() => toValues(initial));
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [, startTransition] = useTransition();
   const [preview, setPreview] = useState(false);
   const [tagDraft, setTagDraft] = useState({ setup: "", mistake: "" });
 
+  const valuesRef = useRef(values);
   const baselineRef = useRef<JournalValues>(toValues(initial));
   const pendingRef = useRef<Partial<JournalValues>>({});
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function change(patch: Partial<JournalValues>) {
+    setValues((prev) => ({ ...prev, ...patch }));
+    valuesRef.current = { ...valuesRef.current, ...patch };
     pendingRef.current = { ...pendingRef.current, ...patch };
-    startTransition(() => applyOptimistic(patch));
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => void flush(), 800);
   }
@@ -155,7 +155,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
     router.refresh();
   }
 
-  // Flush anything still pending when the editor unmounts (sheet closing).
+  // Flush anything still pending when the editor unmounts (page navigation).
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -167,19 +167,22 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
   function addTag(kind: "setupTags" | "mistakeTags", raw: string) {
     const tag = raw.trim().slice(0, 40);
     if (!tag) return;
-    if (optimistic[kind].includes(tag)) {
-      setTagDraft((prev) => ({ ...prev, [kind === "setupTags" ? "setup" : "mistake"]: "" }));
+    const draftKey = kind === "setupTags" ? "setup" : "mistake";
+    if (valuesRef.current[kind].includes(tag)) {
+      setTagDraft((prev) => ({ ...prev, [draftKey]: "" }));
       return;
     }
-    change({ [kind]: [...optimistic[kind], tag] } as Partial<JournalValues>);
-    setTagDraft((prev) => ({ ...prev, [kind === "setupTags" ? "setup" : "mistake"]: "" }));
+    change({ [kind]: [...valuesRef.current[kind], tag] } as Partial<JournalValues>);
+    setTagDraft((prev) => ({ ...prev, [draftKey]: "" }));
   }
 
   function removeTag(kind: "setupTags" | "mistakeTags", tag: string) {
-    change({ [kind]: optimistic[kind].filter((t) => t !== tag) } as Partial<JournalValues>);
+    change({
+      [kind]: valuesRef.current[kind].filter((t) => t !== tag),
+    } as Partial<JournalValues>);
   }
 
-  const note = renderJournalNote(optimistic.notes);
+  const note = renderJournalNote(values.notes);
 
   return (
     <Card>
@@ -188,7 +191,9 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
         <span
           className={cn(
             "flex items-center gap-1 text-xs",
-            status === "saved" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground",
+            status === "saved"
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-muted-foreground",
           )}
           aria-live="polite"
         >
@@ -205,7 +210,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
           <Field>
             <FieldLabel htmlFor="journal-strategy">Strategy</FieldLabel>
             <Select
-              value={optimistic.strategyId}
+              value={values.strategyId}
               onValueChange={(strategyId) => change({ strategyId })}
             >
               <SelectTrigger id="journal-strategy" className="w-full">
@@ -222,10 +227,20 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Rename or add strategies on the{" "}
+              <a href="/strategies" className="underline underline-offset-2">
+                Strategies page
+              </a>
+              .
+            </p>
           </Field>
           <Field>
             <FieldLabel htmlFor="journal-style">Style</FieldLabel>
-            <Select value={optimistic.style} onValueChange={(style) => change({ style })}>
+            <Select
+              value={values.style}
+              onValueChange={(style) => change({ style })}
+            >
               <SelectTrigger id="journal-style" className="w-full">
                 <SelectValue placeholder="Auto" />
               </SelectTrigger>
@@ -241,7 +256,9 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {initial.styleSource === "manual" ? "Manual override" : "Auto — from hold time (§9)"}
+              {initial.styleSource === "manual"
+                ? "Manual override"
+                : "Auto — from hold time (§9)"}
             </p>
           </Field>
         </div>
@@ -254,14 +271,14 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
                 key={star}
                 type="button"
                 aria-label={`${star} star${star > 1 ? "s" : ""}`}
-                aria-pressed={optimistic.rating >= star}
-                onClick={() => change({ rating: optimistic.rating === star ? 0 : star })}
+                aria-pressed={values.rating >= star}
+                onClick={() => change({ rating: values.rating === star ? 0 : star })}
                 className="rounded p-0.5"
               >
                 <Star
                   className={cn(
-                    "size-5",
-                    optimistic.rating >= star
+                    "size-5 transition-colors",
+                    values.rating >= star
                       ? "fill-amber-400 text-amber-400"
                       : "text-muted-foreground/50",
                   )}
@@ -269,7 +286,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
                 />
               </button>
             ))}
-            {optimistic.rating > 0 ? (
+            {values.rating > 0 ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -286,7 +303,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
         <Field>
           <FieldLabel htmlFor="journal-emotion">Emotion</FieldLabel>
           <Select
-            value={optimistic.emotion}
+            value={values.emotion}
             onValueChange={(emotion) => change({ emotion })}
           >
             <SelectTrigger id="journal-emotion" className="w-full">
@@ -312,7 +329,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
             <Field key={kind}>
               <FieldLabel htmlFor={`journal-${key}`}>{label}</FieldLabel>
               <div className="flex flex-wrap items-center gap-1.5">
-                {optimistic[kind].map((tag) => (
+                {values[kind].map((tag) => (
                   <span
                     key={tag}
                     className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
@@ -372,7 +389,7 @@ export function JournalForm({ tradeId, initial, strategyOptions }: JournalFormPr
               id="journal-notes"
               rows={6}
               placeholder="What did you see, plan, and feel? (Markdown supported)"
-              value={optimistic.notes}
+              value={values.notes}
               onChange={(event) => change({ notes: event.target.value })}
             />
           )}

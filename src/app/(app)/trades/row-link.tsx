@@ -25,14 +25,14 @@ export function TradesRowLink({
       window.open(href, "_blank", "noopener");
       return;
     }
-    router.push(href, { scroll: false });
+    router.push(href);
   }
 
   function onRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>) {
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      router.push(href, { scroll: false });
+      router.push(href);
     }
   }
 

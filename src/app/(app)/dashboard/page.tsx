@@ -192,7 +192,7 @@ async function DashboardContent({
           <CardTitle className="text-sm">Recent trades</CardTitle>
           {recent[0] ? (
             <Button asChild variant="outline" size="sm" className="h-7 text-xs">
-              <Link href={`/trades/${recent[0].id}`} scroll={false}>
+              <Link href={`/trades/${recent[0].id}`}>
                 Add screenshot to latest
               </Link>
             </Button>
@@ -203,7 +203,7 @@ async function DashboardContent({
             {recent.map((row) => (
               <li key={row.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <span className="flex min-w-0 items-center gap-2">
-                  <Link href={`/trades/${row.id}`} scroll={false} className="font-medium underline-offset-4 hover:underline">
+                  <Link href={`/trades/${row.id}`} className="font-medium underline-offset-4 hover:underline">
                     {row.symbol}
                   </Link>
                   {row.strategyName ? (
