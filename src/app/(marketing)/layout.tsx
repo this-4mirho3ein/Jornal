@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { Button } from "@/components/ui/button";
+import HeaderSession, { HeaderAuthActions } from "@/app/(marketing)/header-session";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 /**
  * Public marketing shell (spec §14): indexable, minimal chrome, almost no
- * client JS — only the theme toggle ships a bundle here. Footer is part of
- * the shell because the landing hero provides the page's <main> content.
+ * client JS — only the theme toggle ships a bundle here. The header's auth
+ * slot streams inside Suspense (PPR): the prerendered shell carries the
+ * signed-out actions; signed-in visitors get the profile chip swapped in.
+ * Footer is part of the shell because the landing hero provides <main>.
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -55,12 +58,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               FAQ
             </a>
             <ThemeToggle />
-            <Button asChild size="sm" variant="ghost">
-              <a href="/login">Sign in</a>
-            </Button>
-            <Button asChild size="sm">
-              <a href="/register">Get started</a>
-            </Button>
+            <Suspense fallback={<HeaderAuthActions />}>
+              <HeaderSession />
+            </Suspense>
           </nav>
         </div>
       </header>
