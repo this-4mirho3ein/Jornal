@@ -13,15 +13,20 @@ import { formatDateTimeInTz, formatMoney, lastSeenLabel } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Accounts" };
 
+// Admin/config page — deliberately classic navigation: request-time clock
+// plus uncached account reads don't need the instant-navigation treatment.
+export const instant = false;
+
 /**
  * Row data is fully derived server-side (connection level + relative labels)
  * so the client cards hydrate without clock-dependent text.
  */
 async function AccountsContent() {
+  // Request-time clock — connection() goes FIRST so the render opts out of
+  // the prerender scope before any other awaited work (blocking-prerender).
+  await connection();
   const user = await getCurrentUser();
   const accounts = await getUserAccounts(user.id);
-  // Request-time clock (cacheComponents: blocking-prerender-current-time).
-  await connection();
   const now = new Date();
 
   const rows: AccountRowData[] = accounts.map((account) => ({

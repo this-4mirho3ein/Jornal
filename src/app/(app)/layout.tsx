@@ -40,11 +40,10 @@ async function UserArea() {
 
 /** Account switcher (spec §8.1) — streams in next to the brand link. */
 async function SwitcherArea() {
+  // Request-time clock — connection() first, before any awaited work.
+  await connection();
   const user = await getCurrentUser();
   const { account, accounts } = await getActiveAccount(user.id);
-  // "Now" is an unstable value under cacheComponents — opt this subtree into
-  // request-time rendering (installed docs / blocking-prerender-current-time).
-  await connection();
   const now = new Date();
 
   const items: SwitcherAccount[] = accounts.map((item) => ({
