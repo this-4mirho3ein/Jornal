@@ -21,16 +21,19 @@ export function TradeCards({
   return (
     <ul className="flex flex-col gap-2 md:hidden">
       {rows.map((row) => (
-        <li key={row.id} className="rounded-xl border p-3">
+        <li key={row.id} className="relative rounded-xl border p-3 transition-colors hover:bg-muted/40">
+          {/* Stretched link: the whole card navigates (§8.2 row UX) */}
+          <Link
+            href={`/trades/${row.id}`}
+            scroll={false}
+            aria-label={`Open ${row.symbol} trade details`}
+            className="after:absolute after:inset-0 after:rounded-xl after:content-['']"
+          >
+            <span className="sr-only">{row.symbol}</span>
+          </Link>
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 font-medium">
-              <Link
-                href={`/trades/${row.id}`}
-                scroll={false}
-                className="underline-offset-4 hover:underline"
-              >
-                {row.symbol}
-              </Link>
+              {row.symbol}
               <DirectionBadge direction={row.direction} />
             </span>
             <PnlText value={row.netProfit} />

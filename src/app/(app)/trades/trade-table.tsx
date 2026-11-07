@@ -18,6 +18,7 @@ import {
   formatRMultiple,
 } from "@/lib/format";
 import Link from "next/link";
+import { TradesRowLink } from "@/app/(app)/trades/row-link";
 
 /**
  * Desktop table (spec §12.2) — plain server-rendered markup: sorting/filtering
@@ -51,7 +52,7 @@ export function TradeTable({
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.id}>
+            <TradesRowLink key={row.id} href={`/trades/${row.id}`}>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {row.openedAt
                   ? formatDateTimeShortInTz(row.openedAt, timezone)
@@ -107,7 +108,7 @@ export function TradeTable({
               <TableCell className="hidden text-muted-foreground xl:table-cell">
                 {row.accountName}
               </TableCell>
-            </TableRow>
+            </TradesRowLink>
           ))}
         </TableBody>
       </Table>
