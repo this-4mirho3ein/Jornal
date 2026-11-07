@@ -174,3 +174,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* §6.5.4 — subtle realtime row/card highlight: one 1.5s fade, no movement.
+   The global reduced-motion rule above flattens it to an instant blip. */
+@keyframes tj-row-flash {
+  from {
+    background-color: color-mix(in oklch, var(--info) 16%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.tj-row-flash {
+  animation: tj-row-flash 1.5s ease-out both;
+}

@@ -129,12 +129,23 @@ export async function POST(request: Request): Promise<Response> {
     return json({ duplicate: true }, 200);
   }
 
-  // §5.1.8 — realtime publish strictly after the durable commit.
+  // §5.1.8 / §6.5.1 — realtime publish strictly after the durable commit,
+  // fire-and-forget; the toast summary rides on the validated event, so the
+  // browser shows "New trade: XAUUSD Buy @ 2321.35" with zero follow-up fetches.
   void publishTradeUpdate({
+    userId: account.userId,
     accountId: account.id,
     type: event.type,
     tradeId: result.tradeId,
-  }).catch((err: unknown) => logError(SCOPE, "publish failed", err, { accountId: account.id }));
+    trade: event.position
+      ? {
+          symbol: event.position.symbol,
+          direction: event.position.direction,
+          price: event.deal?.price ?? null,
+          profit: event.deal?.profit ?? null,
+        }
+      : null,
+  });
 
   // §13 — dashboard/analytics caches revalidate on written data (task 10).
   try {

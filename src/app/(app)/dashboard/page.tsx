@@ -9,6 +9,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 
 import { EquityCurveLazy } from "@/components/charts/charts-lazy";
 import { PnlHeatmap } from "@/components/charts/pnl-heatmap";
@@ -54,6 +55,9 @@ async function DashboardContent({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Request-time clock — connection() goes FIRST so the render opts out of
+  // the prerender scope before any other awaited work (blocking-prerender).
+  await connection();
   const params = await searchParams;
   const user = await getCurrentUser();
   const scope = await resolveDashboardScope(user.id, params);

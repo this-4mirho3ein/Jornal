@@ -1,6 +1,7 @@
 import { BarChart3 } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { connection } from "next/server";
 
 import {
   BreakdownBarsLazy,
@@ -120,6 +121,9 @@ async function AnalyticsContent({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Request-time clock — connection() goes FIRST so the render opts out of
+  // the prerender scope before any other awaited work (blocking-prerender).
+  await connection();
   const params = await searchParams;
   const user = await getCurrentUser();
   const scope = await resolveDashboardScope(user.id, params);

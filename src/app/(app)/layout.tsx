@@ -9,9 +9,11 @@ import {
   AccountSwitcher,
   type SwitcherAccount,
 } from "@/components/shared/account-switcher";
+import { ConnectionDot } from "@/components/shared/connection-dot";
 import { SidebarNav } from "@/components/shared/sidebar-nav";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { UserMenu } from "@/components/shared/user-menu";
+import { RealtimeGate } from "@/components/realtime/realtime-gate";
 import { getActiveAccount } from "@/features/accounts/active-account";
 import { connectionLevel } from "@/features/accounts/connection";
 import { getCurrentUser } from "@/lib/auth/guards";
@@ -59,11 +61,19 @@ async function SwitcherArea() {
   const currencies = new Set(accounts.map((item) => item.currency));
 
   return (
-    <AccountSwitcher
-      accounts={items}
-      serverActiveId={account?.id ?? null}
-      allCurrencyUniform={currencies.size <= 1}
-    />
+    <div className="flex items-center gap-2.5">
+      <AccountSwitcher
+        accounts={items}
+        serverActiveId={account?.id ?? null}
+        allCurrencyUniform={currencies.size <= 1}
+      />
+      {/* EA heartbeat badge in the top bar (§8.1), driven by last_seen_at */}
+      <ConnectionDot
+        level={account ? connectionLevel(account.lastSeenAt, now) : "offline"}
+        withLabel
+        className="hidden sm:inline-flex"
+      />
+    </div>
   );
 }
 
@@ -129,6 +139,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      {/* §6.5 — lives outside the visible tree: subscribes (or polls, flag
+          off) and refreshes/toasts on trade events; renders null either way */}
+      <Suspense fallback={null}>
+        <RealtimeGate />
+      </Suspense>
     </div>
   );
 }

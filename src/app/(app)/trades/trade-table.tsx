@@ -52,7 +52,7 @@ export function TradeTable({
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TradesRowLink key={row.id} href={`/trades/${row.id}`}>
+            <TradesRowLink key={row.id} href={`/trades/${row.id}`} tradeId={row.id}>
               <TableCell className="whitespace-nowrap text-center text-muted-foreground">
                 {row.openedAt
                   ? formatDateTimeShortInTz(row.openedAt, timezone)
