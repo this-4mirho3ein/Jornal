@@ -5,7 +5,7 @@ import { TradeDetailSections } from "@/app/(app)/trades/[id]/trade-detail";
 export const metadata = { title: "Trade" };
 
 /** Deep-linkable full trade page (the side sheet intercepts from /trades). */
-export default async function TradeDetailPage({
+export default function TradeDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;

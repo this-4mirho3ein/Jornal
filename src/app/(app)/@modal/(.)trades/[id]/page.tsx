@@ -6,8 +6,10 @@ import { TradeSheet } from "@/app/(app)/trades/[id]/trade-sheet";
 /**
  * §8.2 — intercepting side sheet: clicking a trade row in /trades opens the
  * detail here; direct URLs still get /trades/[id] as a deep-linkable page.
+ * Instant-navigation rule: this segment renders SYNCHRONOUSLY — the params
+ * promise is awaited only inside the Suspense boundary below, never here.
  */
-export default async function InterceptedTradeDetail({
+export default function InterceptedTradeDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
