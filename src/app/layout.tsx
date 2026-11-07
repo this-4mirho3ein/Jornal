@@ -2,6 +2,12 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+  siteUrl,
+} from "@/lib/site-url";
 import "./globals.css";
 
 /** UI font (§12.1) */
@@ -18,13 +24,31 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * Site-wide metadata (spec §14) — identity constants live in lib/site-url.
+ * Child segments (private pages) inherit noindex via their group layouts.
+ */
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
   title: {
-    default: "Trading Journal",
-    template: "%s — Trading Journal",
+    default: SITE_TITLE,
+    template: `%s — ${SITE_NAME}`,
   },
-  description:
-    "Real-time trading journal that syncs every MetaTrader 5 trade automatically — analyze, tag by strategy, and improve your edge.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    url: "/",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

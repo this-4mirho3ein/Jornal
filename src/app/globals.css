@@ -100,7 +100,10 @@
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.707 0.165 254.624);
-  --primary-foreground: oklch(0.985 0 0);
+  /* Near-black text on the vivid brand blue — white only reaches 2.6:1 here
+     (WCAG AA needs 4.5:1); flipping the flip-side token keeps the hue (task 13
+     Lighthouse a11y gate, affects every primary button dark mode). */
+  --primary-foreground: oklch(0.145 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
