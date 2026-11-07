@@ -68,7 +68,12 @@ export function IngestKeyReveal({
 }: IngestKeyRevealProps) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby="ingest-key-description">
+      <DialogContent
+        aria-describedby="ingest-key-description"
+        // Show-once secret: an outside click must not throw the key away —
+        // dismissal stays manual (X / "I saved it" / Esc).
+        onInteractOutside={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="size-4" aria-hidden="true" />

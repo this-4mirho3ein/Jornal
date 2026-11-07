@@ -90,11 +90,18 @@ export function CreateAccountDialog({
       toast.error(result.error);
       return;
     }
+    // Show the one-time key and STAY OPEN: the page refresh must wait until
+    // the user closes the reveal — refreshing immediately swaps this
+    // Suspense-mounted subtree and tears the modal (with the key) down while
+    // the user is still copying.
     setReveal(result.data);
-    router.refresh();
   }
 
   function handleOpenChange(next: boolean) {
+    if (!next && reveal) {
+      // Manual close after a successful create — the fresh row appears now.
+      router.refresh();
+    }
     setOpen(next);
     if (!next) {
       reset(EMPTY_VALUES);
@@ -110,7 +117,12 @@ export function CreateAccountDialog({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent aria-describedby="create-account-description">
+      <DialogContent
+        aria-describedby="create-account-description"
+        // While the one-time key is on screen, an outside click must not
+        // dismiss the dialog — dismissal stays manual (X / "I saved it"/Esc).
+        onInteractOutside={reveal ? (event) => event.preventDefault() : undefined}
+      >
         <DialogHeader>
           <DialogTitle>Add MT5 account</DialogTitle>
           <DialogDescription id="create-account-description">
