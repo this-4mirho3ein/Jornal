@@ -15,6 +15,7 @@ import { tradingAccounts, type TradingAccount } from "@/db/schema";
 import { checkRateLimit } from "@/lib/ingest/rate-limit";
 import { ingestEventSchema } from "@/lib/ingest/schemas";
 import { applyIngestEvent } from "@/lib/ingest/reducer-db";
+import { revalidateDashboardCache } from "@/features/dashboard/queries";
 import { logError, logInfo } from "@/lib/logger";
 import { publishTradeUpdate } from "@/lib/realtime/publish";
 
@@ -134,6 +135,13 @@ export async function POST(request: Request): Promise<Response> {
     type: event.type,
     tradeId: result.tradeId,
   }).catch((err: unknown) => logError(SCOPE, "publish failed", err, { accountId: account.id }));
+
+  // §13 — dashboard/analytics caches revalidate on written data (task 10).
+  try {
+    revalidateDashboardCache(account.userId, account.id);
+  } catch (err) {
+    logError(SCOPE, "cache revalidate failed", err, { accountId: account.id });
+  }
 
   logInfo(SCOPE, "event applied", {
     accountId: account.id,
