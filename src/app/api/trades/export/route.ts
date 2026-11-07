@@ -1,0 +1,30 @@
+import type { NextRequest } from "next/server";
+
+import { requireUser } from "@/lib/auth/guards";
+import { tradesToCsv } from "@/features/trades/csv";
+import {
+  getTradesForExport,
+  resolveTradesView,
+} from "@/features/trades/queries";
+
+/**
+ * GET /api/trades/export — CSV of the currently filtered trades set (§11).
+ * Same query builder + account resolution as the page, so what you see is
+ * exactly what downloads. Signed-out users hit the login redirect (`Route
+ * Handlers` may throw `redirect()`); the key never touches this endpoint.
+ */
+export async function GET(request: NextRequest) {
+  const user = await requireUser();
+  const searchParams = Object.fromEntries(request.nextUrl.searchParams);
+  const { filters } = await resolveTradesView(user.id, searchParams);
+  const rows = await getTradesForExport(user.id, filters);
+  const csv = tradesToCsv(rows);
+  const stamp = new Date().toISOString().slice(0, 10);
+  return new Response(csv, {
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="trades-${stamp}.csv"`,
+      "cache-control": "no-store",
+    },
+  });
+}

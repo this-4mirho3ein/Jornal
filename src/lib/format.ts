@@ -67,6 +67,31 @@ export function lastSeenLabel(
   return `${formatDistanceToNowStrict(seen, { addSuffix: false })} ago`;
 }
 
+/** Compact "Nov 7, 09:58" wall-clock in a timezone — table columns and cards. */
+export function formatDateTimeShortInTz(
+  date: Date | string,
+  timeZone: string,
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  }).format(d);
+}
+
+/** Display-only R multiple: `1.8520` → `+1.85R`. Rounding only — no math. */
+export function formatRMultiple(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const n = typeof value === "number" ? value : Number.parseFloat(value);
+  if (Number.isNaN(n)) return "—";
+  return `${n > 0 ? "+" : ""}${n.toFixed(2)}R`;
+}
+
 /** Duration in seconds → `1h 23m` / `4m 12s` (used by trades/analytics too). */
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds))
