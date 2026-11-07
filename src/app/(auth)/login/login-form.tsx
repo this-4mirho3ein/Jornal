@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -85,7 +86,14 @@ export default function LoginForm() {
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Registration is owner-only: new accounts are closed.
+        Owner-only install —{" "}
+        <Link
+          href="/register"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          create the owner account
+        </Link>{" "}
+        (once).
       </p>
     </form>
   );
