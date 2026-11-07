@@ -2,8 +2,10 @@
  * Strategy auto-assignment for ingested deals (spec §5.1.7, task 05).
  *
  * Precedence: EA magic number via `magic_strategy_map`, else the MT5 comment
- * carrying `S:<code>` (case-insensitive, whitespace-tolerant). Neither hit →
- * null (the trade stays unassigned until the user maps it — task 07 UI).
+ * carrying `S:<code>` (case-insensitive, whitespace-tolerant), else the
+ * account's default strategy (owner request, 2026-11 — see ADR 0009). All
+ * three miss → null (the trade stays unassigned until the user maps it —
+ * task 07 UI).
  *
  * The lookup inputs are fetched ONCE per ingest request by the db layer and
  * injected here, keeping this module pure and unit-testable.
@@ -28,7 +30,7 @@ export function parseStrategyCode(comment: string | null | undefined): string | 
   return match ? match[1] : null;
 }
 
-export type StrategySource = "magic" | "comment" | "none";
+export type StrategySource = "magic" | "comment" | "default" | "none";
 
 export interface AssignStrategyResult {
   strategyId: string | null;
@@ -40,11 +42,14 @@ export function assignStrategy({
   comment,
   magicMap,
   strategies,
+  defaultStrategyId = null,
 }: {
   magic: number | null | undefined;
   comment: string | null | undefined;
   magicMap: MagicMap;
   strategies: readonly StrategyRef[];
+  /** Account default (ADR 0009) — lowest precedence, never overrides magic/comment. */
+  defaultStrategyId?: string | null;
 }): AssignStrategyResult {
   if (magic !== null && magic !== undefined) {
     const byMagic = magicMap.get(magic);
@@ -60,6 +65,10 @@ export function assignStrategy({
     if (byCode) {
       return { strategyId: byCode.id, source: "comment" };
     }
+  }
+
+  if (defaultStrategyId) {
+    return { strategyId: defaultStrategyId, source: "default" };
   }
 
   return { strategyId: null, source: "none" };

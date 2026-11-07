@@ -1,0 +1,2 @@
+ALTER TABLE "trading_accounts" ADD COLUMN "default_strategy_id" uuid;--> statement-breakpoint
+ALTER TABLE "trading_accounts" ADD CONSTRAINT "trading_accounts_default_strategy_id_strategies_id_fk" FOREIGN KEY ("default_strategy_id") REFERENCES "public"."strategies"("id") ON DELETE set null ON UPDATE no action;

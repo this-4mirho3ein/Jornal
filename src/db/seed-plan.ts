@@ -79,13 +79,6 @@ export const SYMBOLS: Record<string, SymbolMeta> = {
   },
 };
 
-export const MAGIC_TO_STRATEGY = {
-  1001: "ICT-SB",
-  1002: "ICT-OB",
-  1003: "LB",
-  1004: "MR",
-} as const;
-
 export interface DealPlan {
   dealId: number;
   orderId: number;
@@ -105,7 +98,6 @@ export interface TradePlan {
   symbolKey: string;
   direction: Direction;
   magic: number;
-  strategyCode: (typeof MAGIC_TO_STRATEGY)[keyof typeof MAGIC_TO_STRATEGY];
   comment: string;
   openedAt: Date;
   closedAt: Date | null;
@@ -175,9 +167,7 @@ export function buildTrade(
   const symbolKey = symbolKeys[Math.floor(rand() * symbolKeys.length)];
   const sym: SymbolMeta = SYMBOLS[symbolKey];
   const direction: Direction = rand() < 0.5 ? "buy" : "sell";
-  const magicRow = pick(ctx, [1001, 1002, 1003, 1004] as const);
-  const magic: keyof typeof MAGIC_TO_STRATEGY = magicRow;
-  const strategyCode = MAGIC_TO_STRATEGY[magic];
+  const magic = pick(ctx, [1001, 1002, 1003, 1004] as const);
 
   // Holding time by style: ~35% scalp, 45% day, 17% swing, 3% position
   const styleRoll = rand();
@@ -297,8 +287,7 @@ export function buildTrade(
     symbolKey,
     direction,
     magic,
-    strategyCode,
-    comment: `S:${strategyCode}`,
+    comment: "",
     openedAt: opened,
     closedAt,
     initialSl,

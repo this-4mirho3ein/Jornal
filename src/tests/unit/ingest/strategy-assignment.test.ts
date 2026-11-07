@@ -29,7 +29,7 @@ describe("parseStrategyCode (S:<code> comment marker)", () => {
   });
 });
 
-describe("assignStrategy (§5.1.7 — magic map first, then comment)", () => {
+describe("assignStrategy (§5.1.7 — magic map first, then comment, then default)", () => {
   it("assigns by magic number when mapped", () => {
     const result = assignStrategy({ magic: 1001, comment: "S:ICT-OB", magicMap, strategies });
     expect(result).toEqual({ strategyId: strategies[0].id, source: "magic" });
@@ -40,8 +40,48 @@ describe("assignStrategy (§5.1.7 — magic map first, then comment)", () => {
     expect(result).toEqual({ strategyId: strategies[1].id, source: "comment" });
   });
 
-  it("returns none when neither matches", () => {
-    const result = assignStrategy({ magic: 9999, comment: "random note", magicMap, strategies });
+  it("falls back to the account default (ADR 0009) when magic and comment miss", () => {
+    const defaultStrategyId = strategies[2].id;
+    const result = assignStrategy({
+      magic: 9999,
+      comment: "random note",
+      magicMap,
+      strategies,
+      defaultStrategyId,
+    });
+    expect(result).toEqual({ strategyId: defaultStrategyId, source: "default" });
+  });
+
+  it("account default never overrides a magic hit", () => {
+    const result = assignStrategy({
+      magic: 1001,
+      comment: null,
+      magicMap,
+      strategies,
+      defaultStrategyId: strategies[2].id,
+    });
+    expect(result).toEqual({ strategyId: strategies[0].id, source: "magic" });
+  });
+
+  it("account default never overrides a comment hit", () => {
+    const result = assignStrategy({
+      magic: null,
+      comment: "S:ICT-OB",
+      magicMap,
+      strategies,
+      defaultStrategyId: strategies[2].id,
+    });
+    expect(result).toEqual({ strategyId: strategies[1].id, source: "comment" });
+  });
+
+  it("returns none when magic, comment and default all miss", () => {
+    const result = assignStrategy({
+      magic: 9999,
+      comment: "random note",
+      magicMap,
+      strategies,
+      defaultStrategyId: null,
+    });
     expect(result).toEqual({ strategyId: null, source: "none" });
   });
 

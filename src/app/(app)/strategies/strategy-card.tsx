@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ import {
 import { StrategyFormDialog } from "@/app/(app)/strategies/strategy-form-dialog";
 import { StyleBadge } from "@/components/shared/style-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { archiveStrategy } from "@/features/strategies/actions";
+import { archiveStrategy, setDefaultStrategy } from "@/features/strategies/actions";
 import type { TradeStyleValue } from "@/lib/trade-style";
 import { cn } from "@/lib/utils";
 
@@ -41,10 +41,25 @@ export interface StrategyCardData {
   archived: boolean;
 }
 
-export function StrategyCard({ strategy }: { strategy: StrategyCardData }) {
+interface StrategyCardProps {
+  strategy: StrategyCardData;
+  /** Active account the default toggle acts on (null → toggle hidden). */
+  activeAccountId: string | null;
+  activeAccountName: string | null;
+  /** Whether this strategy IS the active account's default. */
+  isDefault: boolean;
+}
+
+export function StrategyCard({
+  strategy,
+  activeAccountId,
+  activeAccountName,
+  isDefault,
+}: StrategyCardProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [defaultBusy, setDefaultBusy] = useState(false);
 
   async function setArchived(archived: boolean) {
     const result = await archiveStrategy({ strategyId: strategy.id, archived });
@@ -53,6 +68,26 @@ export function StrategyCard({ strategy }: { strategy: StrategyCardData }) {
       return;
     }
     toast.success(archived ? "Strategy archived." : "Strategy restored.");
+    router.refresh();
+  }
+
+  async function toggleDefault() {
+    if (!activeAccountId) return;
+    setDefaultBusy(true);
+    const result = await setDefaultStrategy({
+      accountId: activeAccountId,
+      strategyId: isDefault ? null : strategy.id,
+    });
+    setDefaultBusy(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success(
+      isDefault
+        ? `"${strategy.name}" is no longer the default for ${activeAccountName ?? "this account"}.`
+        : `New ${activeAccountName ?? "account"} trades use "${strategy.name}" when no magic/comment matches.`,
+    );
     router.refresh();
   }
 
@@ -86,17 +121,43 @@ export function StrategyCard({ strategy }: { strategy: StrategyCardData }) {
           ) : null}
         </CardDescription>
         <CardAction>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="flex items-center gap-1.5">
+            {activeAccountId ? (
               <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label={`Actions for ${strategy.name}`}
+                type="button"
+                variant={isDefault ? "secondary" : "outline"}
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                aria-pressed={isDefault}
+                disabled={defaultBusy || (strategy.archived && !isDefault)}
+                aria-label={
+                  isDefault
+                    ? `Clear ${strategy.name} as the default strategy for ${activeAccountName ?? "this account"}`
+                    : `Make ${strategy.name} the default strategy for ${activeAccountName ?? "this account"}`
+                }
+                onClick={() => void toggleDefault()}
               >
-                <Pencil className="size-4" aria-hidden="true" />
+                <Star
+                  className={cn(
+                    "size-3.5",
+                    isDefault && "fill-amber-400 text-amber-500",
+                  )}
+                  aria-hidden="true"
+                />
+                {isDefault ? "Default" : "Set default"}
               </Button>
-            </DropdownMenuTrigger>
+            ) : null}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label={`Actions for ${strategy.name}`}
+                >
+                  <Pencil className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 <Pencil className="size-4" aria-hidden="true" />
@@ -115,7 +176,8 @@ export function StrategyCard({ strategy }: { strategy: StrategyCardData }) {
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         </CardAction>
       </CardHeader>
       {strategy.description ? (
@@ -129,7 +191,6 @@ export function StrategyCard({ strategy }: { strategy: StrategyCardData }) {
         strategy={{
           id: strategy.id,
           name: strategy.name,
-          code: strategy.code,
           color: strategy.color,
           description: strategy.description,
           defaultStyle: strategy.defaultStyle,

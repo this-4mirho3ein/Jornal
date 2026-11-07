@@ -1,15 +1,9 @@
 import { z } from "zod";
 
-/** Strategy/style codes arrive from MT5 comments — `[A-Za-z0-9._-]` only. */
-const codeSchema = z
-  .string()
-  .trim()
-  .min(1, "Code is required")
-  .max(24, "Keep the code short — it is typed into MT5 order comments")
-  .regex(/^[A-Za-z0-9._-]+$/, "Letters, digits, dot, dash, underscore only")
-  // Codes are matched case-insensitively by the ingest parser (§5.1.7);
-  // storing them upper-cased keeps the unique index and chips consistent.
-  .transform((code) => code.toUpperCase());
+/**
+ * Codes are no longer user input (owner request, 2026-11): the server derives
+ * one from the strategy name (see `code.ts`) and keeps it unique per user.
+ */
 
 const hexColorSchema = z
   .string()
@@ -27,7 +21,6 @@ export type StyleValue = z.infer<typeof styleSchema>;
 
 export const createStrategySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(60),
-  code: codeSchema,
   color: hexColorSchema.optional().or(z.literal("")),
   description: optionalText(400),
   /** While a trade is open and auto-classification is impossible (§9). */
@@ -41,6 +34,16 @@ export const updateStrategySchema = createStrategySchema.extend({
 export const archiveStrategySchema = z.object({
   strategyId,
   archived: z.boolean(),
+});
+
+/**
+ * Per-account default strategy (owner request, 2026-11): new trades on the
+ * account get it when magic map and comment both miss. `strategyId: null`
+ * clears the default.
+ */
+export const setDefaultStrategySchema = z.object({
+  accountId: z.uuid("Invalid account id"),
+  strategyId: strategyId.nullable(),
 });
 
 /** MT5 magic numbers are int32 — 0 is valid (EA-less / manual trades). */

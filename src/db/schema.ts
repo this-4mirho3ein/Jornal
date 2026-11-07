@@ -174,6 +174,15 @@ export const tradingAccounts = pgTable(
     /** SHA-256 of the ingest key — the raw key is never stored. */
     ingestKeyHash: text("ingest_key_hash").notNull(),
     ingestKeyPrefix: text("ingest_key_prefix").notNull(),
+    /**
+     * Fallback strategy for NEW trades on THIS account (owner request,
+     * 2026-11) — the ingest reducer applies it only after the magic map and
+     * the S:comment marker both miss; it never overrides either. Deleting
+     * the strategy clears the pointer (`set null`).
+     */
+    defaultStrategyId: uuid("default_strategy_id").references(() => strategies.id, {
+      onDelete: "set null",
+    }),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     lastBalance: numeric("last_balance", { precision: 18, scale: 2 }),
     lastEquity: numeric("last_equity", { precision: 18, scale: 2 }),

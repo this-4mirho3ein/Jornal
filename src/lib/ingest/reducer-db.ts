@@ -264,10 +264,13 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
     })
     .onConflictDoNothing({ target: [tradeDeals.accountId, tradeDeals.dealId] });
 
-  // Strategy assignment only when the trade has none yet (§5.1.7).
+  // Strategy assignment only when the trade has none yet (§5.1.7). Precedence:
+  // magic map → S:comment code → account default (ADR 0009) → unassigned.
   let strategyId = trade.strategyId;
   let strategyRowsForStyle: { id: string; code: string; defaultStyle: TradeStyle | null }[] = [];
-  const needsAssignment = !strategyId && (position.magic !== undefined || position.comment);
+  const needsAssignment =
+    !strategyId &&
+    (position.magic !== undefined || !!position.comment || !!account.defaultStrategyId);
   if (needsAssignment) {
     const [mapRows, strategyRows] = await Promise.all([
       tx
@@ -286,6 +289,7 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
       comment: position.comment ?? null,
       magicMap,
       strategies: strategyRows,
+      defaultStrategyId: account.defaultStrategyId,
     }).strategyId;
   }
 

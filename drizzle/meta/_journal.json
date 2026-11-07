@@ -15,6 +15,13 @@
       "when": 1793971927879,
       "tag": "0001_unknown_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794047081692,
+      "tag": "0002_careful_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

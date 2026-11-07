@@ -1,4 +1,4 @@
-import { GitBranch, TextCursorInput } from "lucide-react";
+import { GitBranch, Star, TextCursorInput } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -10,6 +10,7 @@ import {
 } from "@/app/(app)/strategies/magic-map-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { getActiveAccount } from "@/features/accounts/active-account";
 import { getUserAccounts } from "@/features/accounts/queries";
 import {
   getMagicMappings,
@@ -25,11 +26,13 @@ export const metadata: Metadata = { title: "Strategies" };
  */
 async function StrategiesContent() {
   const user = await getCurrentUser();
-  const [strategyRows, accounts, mappings] = await Promise.all([
+  const [strategyRows, accounts, mappings, active] = await Promise.all([
     getUserStrategies(user.id, { includeArchived: true }),
     getUserAccounts(user.id),
     getMagicMappings(user.id),
+    getActiveAccount(user.id),
   ]);
+  const activeAccount = active.account;
 
   const cards: StrategyCardData[] = strategyRows.map((row) => ({
     id: row.id,
@@ -70,11 +73,26 @@ async function StrategiesContent() {
           action={<StrategyFormDialog triggerLabel="Create your first strategy" />}
         />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {cards.map((card) => (
-            <StrategyCard key={card.id} strategy={card} />
-          ))}
-        </div>
+        <>
+          {activeAccount ? (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Star className="size-3.5 fill-amber-400 text-amber-500" aria-hidden="true" />
+              Default = the strategy new {activeAccount.displayName} trades get when
+              no magic mapping and no order-comment code matches.
+            </p>
+          ) : null}
+          <div className="grid gap-3 md:grid-cols-2">
+            {cards.map((card) => (
+              <StrategyCard
+                key={card.id}
+                strategy={card}
+                activeAccountId={activeAccount?.id ?? null}
+                activeAccountName={activeAccount?.displayName ?? null}
+                isDefault={activeAccount?.defaultStrategyId === card.id}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       <Card>

@@ -22,21 +22,14 @@ import {
 } from "./seed-plan";
 
 /**
- * Deterministic seed (task 02): demo user, 2 accounts, 4 strategies,
- * ~40 realistic trades incl. partial closes, balance snapshots, cash ops.
- * Re-running resets and re-creates the same data (fixed UUIDs + RNG seed).
+ * Deterministic seed (task 02): demo user, 2 accounts, ~40 realistic trades
+ * (unassigned strategies — mocks no longer seeded), balance snapshots, cash
+ * ops. Re-running resets and re-creates the same data (fixed UUIDs + RNG seed).
  */
 
 const SEED_USER_ID = "00000000-0000-4000-8000-000000000001";
 const LIVE_ACCOUNT_ID = "00000000-0000-4000-8000-000000000002";
 const DEMO_ACCOUNT_ID = "00000000-0000-4000-8000-000000000003";
-
-const STRATEGY_IDS = {
-  "ICT-SB": "00000000-0000-4000-8000-00000000000a",
-  "ICT-OB": "00000000-0000-4000-8000-00000000000b",
-  LB: "00000000-0000-4000-8000-00000000000c",
-  MR: "00000000-0000-4000-8000-00000000000d",
-} as const;
 
 const SETUPS = ["OB", "FVG", "SSL", "BSL", "Liquidity sweep", "Breaker"];
 const MISTAKES = ["moved SL", "no confirmation", "revenge", "early entry", "oversize"];
@@ -126,52 +119,6 @@ async function main(): Promise<void> {
     },
   ]);
 
-  await db.insert(strategies).values([
-    {
-      id: STRATEGY_IDS["ICT-SB"],
-      userId: ownerId,
-      name: "ICT Silver Bullet",
-      code: "ICT-SB",
-      color: "#3b82f6",
-      description: "NY AM ICT concept entries in the 1h window",
-      defaultStyle: "scalp",
-    },
-    {
-      id: STRATEGY_IDS["ICT-OB"],
-      userId: ownerId,
-      name: "ICT Order Block",
-      code: "ICT-OB",
-      color: "#10b981",
-      description: "Higher timeframe order block retests",
-      defaultStyle: "swing",
-    },
-    {
-      id: STRATEGY_IDS.LB,
-      userId: ownerId,
-      name: "London Breakout",
-      code: "LB",
-      color: "#f59e0b",
-      description: "Asia range breakout during London open",
-      defaultStyle: "day",
-    },
-    {
-      id: STRATEGY_IDS.MR,
-      userId: ownerId,
-      name: "Mean Reversion",
-      code: "MR",
-      color: "#a855f7",
-      description: "Extreme reversion on H1 RSI",
-      defaultStyle: "scalp",
-    },
-  ]);
-
-  await db.insert(magicStrategyMap).values([
-    { accountId: LIVE_ACCOUNT_ID, magic: 1001, strategyId: STRATEGY_IDS["ICT-SB"] },
-    { accountId: LIVE_ACCOUNT_ID, magic: 1002, strategyId: STRATEGY_IDS["ICT-OB"] },
-    { accountId: LIVE_ACCOUNT_ID, magic: 1003, strategyId: STRATEGY_IDS.LB },
-    { accountId: DEMO_ACCOUNT_ID, magic: 1004, strategyId: STRATEGY_IDS.MR },
-  ]);
-
   // ---- Trades --------------------------------------------------------------
   const balances: Record<string, number> = {
     [LIVE_ACCOUNT_ID]: 100000,
@@ -238,7 +185,7 @@ async function main(): Promise<void> {
         rMultiple: agg.rMultiple,
         pipsOrPoints: agg.pipsOrPoints,
         durationSeconds: agg.durationSeconds,
-        strategyId: STRATEGY_IDS[plan.strategyCode],
+        strategyId: null,
         style: agg.style,
         styleSource: "auto",
         mt5Comment: plan.comment,

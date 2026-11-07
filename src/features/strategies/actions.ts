@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db/client";
@@ -10,16 +10,20 @@ import {
   archiveStrategySchema,
   createStrategySchema,
   removeMagicMappingSchema,
+  setDefaultStrategySchema,
   setMagicMappingSchema,
   setTradeStyleSchema,
   updateStrategySchema,
 } from "@/features/strategies/schemas";
+import { deriveStrategyCode } from "@/features/strategies/code";
 import type { ActionResult } from "@/features/accounts/actions";
 import { getAccountById } from "@/features/accounts/queries";
 
 function onActionError(error: unknown): { ok: false; error: string } {
   if (isUniqueViolation(error)) {
-    return { ok: false, error: "That strategy code is already in use. Codes must be unique." };
+    // The per-user unique index on (userId, code) — the derived code collided
+    // with an existing one despite the case-insensitive pre-check (race).
+    return { ok: false, error: "A strategy with this code already exists — try a different name." };
   }
   console.error("[strategies:action]", error);
   return { ok: false, error: "Something went wrong. Please try again." };
@@ -42,35 +46,34 @@ function revalidateStrategies(): void {
   revalidatePath("/trades");
 }
 
-/** Case-insensitive code duplicate check for one user (excluding one row). */
-async function codeTaken(userId: string, code: string, excludeId?: string) {
-  const rows = await db
-    .select({ id: strategies.id })
+/**
+ * Code is derived from the name, never typed (owner request, 2026-11):
+ * `ICT Silver Bullet` → `ICT-SILVER-BULLET`, de-duplicated per user. The MT5
+ * comment contract (`S:<code>`, §6.1) is unchanged — the app just generates
+ * the code itself.
+ */
+async function nextStrategyCode(userId: string, name: string): Promise<string> {
+  const existing = await db
+    .select({ code: strategies.code })
     .from(strategies)
-    .where(
-      and(
-        eq(strategies.userId, userId),
-        sql`lower(${strategies.code}) = lower(${code})`,
-        excludeId ? ne(strategies.id, excludeId) : undefined,
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
+    .where(eq(strategies.userId, userId));
+  return deriveStrategyCode(
+    name,
+    existing.map((row) => row.code),
+  );
 }
 
 export async function createStrategy(input: unknown): Promise<ActionResult<{ id: string }>> {
   try {
     const user = await requireUser();
     const parsed = createStrategySchema.parse(input ?? {});
-    if (await codeTaken(user.id, parsed.code)) {
-      return { ok: false, error: `Code "${parsed.code}" is already in use. Codes must be unique.` };
-    }
+    const code = await nextStrategyCode(user.id, parsed.name);
     const [row] = await db
       .insert(strategies)
       .values({
         userId: user.id,
         name: parsed.name,
-        code: parsed.code,
+        code,
         color: parsed.color || null,
         description: parsed.description || null,
         defaultStyle: parsed.defaultStyle || null,
@@ -93,14 +96,11 @@ export async function updateStrategy(input: unknown): Promise<ActionResult<null>
       .where(and(eq(strategies.id, parsed.strategyId), eq(strategies.userId, user.id)))
       .limit(1);
     if (owned.length === 0) return { ok: false, error: "Strategy not found." };
-    if (await codeTaken(user.id, parsed.code, parsed.strategyId)) {
-      return { ok: false, error: `Code "${parsed.code}" is already in use. Codes must be unique.` };
-    }
+    // Code stays stable on rename: existing MT5 comments keep matching (§6.1).
     await db
       .update(strategies)
       .set({
         name: parsed.name,
-        code: parsed.code,
         color: parsed.color || null,
         description: parsed.description || null,
         defaultStyle: parsed.defaultStyle || null,
@@ -108,6 +108,46 @@ export async function updateStrategy(input: unknown): Promise<ActionResult<null>
       .where(
         and(eq(strategies.id, parsed.strategyId), eq(strategies.userId, user.id)),
       );
+    revalidateStrategies();
+    return { ok: true, data: null };
+  } catch (error) {
+    return onActionError(error);
+  }
+}
+
+/**
+ * Marks a strategy as the default for one owned account (owner request,
+ * 2026-11): new trades on that account get it when the magic map and the
+ * S:comment marker both miss. `strategyId: null` clears the default. The
+ * strategy must be active (archived ones are excluded from auto-assignment
+ * surfaces) and owned.
+ */
+export async function setDefaultStrategy(
+  input: unknown,
+): Promise<ActionResult<null>> {
+  try {
+    const user = await requireUser();
+    const { accountId, strategyId } = setDefaultStrategySchema.parse(input);
+
+    const account = await getAccountById(accountId, user.id);
+    if (!account) return { ok: false, error: "Account not found." };
+
+    if (strategyId !== null) {
+      const owned = await db
+        .select({ archivedAt: strategies.archivedAt })
+        .from(strategies)
+        .where(and(eq(strategies.id, strategyId), eq(strategies.userId, user.id)))
+        .limit(1);
+      if (owned.length === 0) return { ok: false, error: "Strategy not found." };
+      if (owned[0].archivedAt !== null) {
+        return { ok: false, error: "Restore the strategy before making it the default." };
+      }
+    }
+
+    await db
+      .update(tradingAccounts)
+      .set({ defaultStrategyId: strategyId })
+      .where(eq(tradingAccounts.id, accountId));
     revalidateStrategies();
     return { ok: true, data: null };
   } catch (error) {

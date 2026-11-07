@@ -95,7 +95,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link
               href="/dashboard"
               className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight"
@@ -108,7 +108,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 priority
                 className="rounded-md"
               />
-              <span>Trading Journal</span>
+              {/* Text hides on the narrowest phones — the switcher gets the room (§12.2) */}
+              <span className="hidden min-[480px]:inline">Trading Journal</span>
             </Link>
             <Suspense fallback={<SwitcherFallback />}>
               <SwitcherArea />

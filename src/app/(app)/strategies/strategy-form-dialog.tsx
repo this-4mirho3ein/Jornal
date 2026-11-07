@@ -33,12 +33,6 @@ import { cn } from "@/lib/utils";
 /** Client-side mirror of create/updateStrategySchema — transforms stay server-side. */
 const formSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(60),
-  code: z
-    .string()
-    .trim()
-    .min(1, "Code is required")
-    .max(24, "Max 24 characters")
-    .regex(/^[A-Za-z0-9._-]+$/, "Letters, digits, dot, dash, underscore only"),
   color: z.string(),
   defaultStyle: z.string(),
   description: z.string().trim().max(400).optional(),
@@ -48,7 +42,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 const EMPTY_VALUES: FormValues = {
   name: "",
-  code: "",
   color: "",
   defaultStyle: "",
   description: "",
@@ -78,7 +71,6 @@ const STYLE_OPTIONS = [
 export interface StrategyFormValues {
   id: string;
   name: string;
-  code: string;
   color: string | null;
   description: string | null;
   defaultStyle: string | null;
@@ -108,7 +100,6 @@ export function StrategyFormDialog({
   const defaults: FormValues = strategy
     ? {
         name: strategy.name,
-        code: strategy.code,
         color: strategy.color ?? "",
         defaultStyle: strategy.defaultStyle ?? "",
         description: strategy.description ?? "",
@@ -140,7 +131,6 @@ export function StrategyFormDialog({
   async function onSubmit(values: FormValues) {
     const payload = {
       name: values.name,
-      code: values.code.toUpperCase(),
       color: values.color || undefined,
       defaultStyle: values.defaultStyle || undefined,
       description: values.description || undefined,
@@ -173,9 +163,9 @@ export function StrategyFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit strategy" : "New strategy"}</DialogTitle>
           <DialogDescription id="strategy-form-description">
-            The <strong>code</strong> is what ties trades to this strategy — type{" "}
-            <code className="font-mono text-xs">S:{strategy?.code ?? "CODE"}</code> into
-            the MT5 order comment, or map your bot&apos;s magic number on this page.
+            A short code for MT5 order comments (<code className="font-mono text-xs">S:…</code>)
+            is derived from the name automatically — trades are tagged by magic
+            mapping, comment code, or the account&apos;s default strategy.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -184,33 +174,18 @@ export function StrategyFormDialog({
           noValidate
         >
           <FieldGroup>
-            <div className="grid grid-cols-[1fr_140px] gap-3">
-              <Field data-invalid={!!errors.name || undefined}>
-                <FieldLabel htmlFor="strategy-name">Name</FieldLabel>
-                <Input
-                  id="strategy-name"
-                  placeholder="ICT Silver Bullet"
-                  aria-invalid={!!errors.name}
-                  {...register("name")}
-                />
-                {errors.name ? (
-                  <FieldError>{errors.name.message}</FieldError>
-                ) : null}
-              </Field>
-              <Field data-invalid={!!errors.code || undefined}>
-                <FieldLabel htmlFor="strategy-code">Code</FieldLabel>
-                <Input
-                  id="strategy-code"
-                  placeholder="ICT-SB"
-                  aria-invalid={!!errors.code}
-                  className="font-mono uppercase"
-                  {...register("code")}
-                />
-                {errors.code ? (
-                  <FieldError>{errors.code.message}</FieldError>
-                ) : null}
-              </Field>
-            </div>
+            <Field data-invalid={!!errors.name || undefined}>
+              <FieldLabel htmlFor="strategy-name">Name</FieldLabel>
+              <Input
+                id="strategy-name"
+                placeholder="ICT Silver Bullet"
+                aria-invalid={!!errors.name}
+                {...register("name")}
+              />
+              {errors.name ? (
+                <FieldError>{errors.name.message}</FieldError>
+              ) : null}
+            </Field>
             <Field>
               <FieldLabel>Color</FieldLabel>
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Strategy color">
