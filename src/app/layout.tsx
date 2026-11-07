@@ -66,10 +66,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        {/* Light is the default experience (owner request, 2026-11): with
+            enableSystem={false} an OS dark preference no longer overrides it;
+            the header toggle persists the user's explicit choice. */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}

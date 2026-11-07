@@ -3,7 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type { ComponentProps } from "react";
 
-/** App theme provider — dark mode default (§12.1), class strategy for shadcn tokens. */
+/** App theme provider — light default (root layout), class strategy for shadcn tokens. */
 export function ThemeProvider({
   children,
   ...props
