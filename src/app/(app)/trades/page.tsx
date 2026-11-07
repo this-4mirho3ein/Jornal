@@ -29,7 +29,7 @@ export const metadata: Metadata = { title: "Trades" };
 
 type TradesSearchParams = Record<string, string | string[] | undefined>;
 
-export default async function TradesPage(props: PageProps<"/trades">) {
+export default function TradesPage(props: PageProps<"/trades">) {
   // The promise is awaited inside `<Suspense>` (cacheComponents rule) — the
   // shell prerenders while the filtered content streams.
   return (

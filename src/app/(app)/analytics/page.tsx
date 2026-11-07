@@ -34,7 +34,7 @@ import { hourLabel, PeriodChips, weekdayLabel } from "@/components/shared/period
 
 export const metadata: Metadata = { title: "Analytics" };
 
-export default async function AnalyticsPage(props: PageProps<"/analytics">) {
+export default function AnalyticsPage(props: PageProps<"/analytics">) {
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
       <div>

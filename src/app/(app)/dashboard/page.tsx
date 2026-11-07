@@ -33,7 +33,7 @@ import { getCurrentUser } from "@/lib/auth/guards";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-export default async function DashboardPage(props: PageProps<"/dashboard">) {
+export default function DashboardPage(props: PageProps<"/dashboard">) {
   return (
     <div className="flex flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
       <div>
