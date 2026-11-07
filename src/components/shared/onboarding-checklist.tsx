@@ -56,10 +56,7 @@ function setDismissedFlag(dismissed: boolean): void {
  */
 export function OnboardingChecklist({ progress }: { progress: OnboardingProgress }) {
   const dismissed = useSyncExternalStore(subscribe, isDismissed, getServerSnapshot);
-  const toggleDismissed = useCallback(
-    () => setDismissedFlag(!dismissed),
-    [dismissed],
-  );
+  const toggleDismissed = useCallback(() => setDismissedFlag(!dismissed), [dismissed]);
 
   const steps = [
     {
@@ -77,8 +74,8 @@ export function OnboardingChecklist({ progress }: { progress: OnboardingProgress
     {
       label: "Install the EA",
       done: progress.hasHeartbeat,
-      href: "/accounts",
-      hint: "Attach JournalSync.mq5 to one MT5 chart with that key — setup steps are on the Accounts page.",
+      href: "/guide",
+      hint: "Download JournalSync.mq5 and connect MT5 — the setup guide has every step.",
     },
     {
       label: "First trade received",
@@ -94,11 +91,7 @@ export function OnboardingChecklist({ progress }: { progress: OnboardingProgress
         title="Nothing to show yet"
         description="Finish EA setup to pull in your trades — the checklist stays hidden until you bring it back."
         action={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleDismissed}
-          >
+          <Button variant="outline" size="sm" onClick={toggleDismissed}>
             Show setup checklist
           </Button>
         }
@@ -161,7 +154,9 @@ export function OnboardingChecklist({ progress }: { progress: OnboardingProgress
                   >
                     {step.label}
                   </span>
-                  <span className="block text-xs text-muted-foreground">{step.hint}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {step.hint}
+                  </span>
                 </span>
               </Link>
             </li>

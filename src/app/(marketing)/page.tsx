@@ -117,8 +117,7 @@ function JsonLd() {
     })),
   };
   // JSON.stringify does not escape "<" — scrub it (installed Next.js JSON-LD guide).
-  const scrub = (json: object) =>
-    JSON.stringify(json).replace(/</g, "\\u003c");
+  const scrub = (json: object) => JSON.stringify(json).replace(/</g, "\\u003c");
   return (
     <>
       <script
@@ -136,10 +135,7 @@ function JsonLd() {
 /** Decorative dashboard mock — pure CSS/SVG, zero JS, hidden from a11y tree. */
 function DashboardMock() {
   return (
-    <div
-      aria-hidden="true"
-      className="relative rounded-2xl border bg-card shadow-2xl"
-    >
+    <div aria-hidden="true" className="relative rounded-2xl border bg-card shadow-2xl">
       <div className="flex items-center gap-1.5 border-b px-4 py-3">
         <span className="size-2.5 rounded-full bg-red-400/70" />
         <span className="size-2.5 rounded-full bg-amber-400/70" />
@@ -151,26 +147,22 @@ function DashboardMock() {
       <div className="grid grid-cols-3 gap-2 p-3 sm:gap-3 sm:p-4">
         <div className="rounded-lg border bg-background p-2.5 sm:p-3">
           <p className="text-[10px] text-muted-foreground sm:text-xs">Net P/L</p>
-          <p className="mt-1 text-sm font-semibold tabular-nums text-profit sm:text-lg">
+          <p className="mt-1 text-sm font-semibold text-profit tabular-nums sm:text-lg">
             +$1,109.21
           </p>
         </div>
         <div className="rounded-lg border bg-background p-2.5 sm:p-3">
           <p className="text-[10px] text-muted-foreground sm:text-xs">Win rate</p>
-          <p className="mt-1 text-sm font-semibold tabular-nums sm:text-lg">
-            58.6%
-          </p>
+          <p className="mt-1 text-sm font-semibold tabular-nums sm:text-lg">58.6%</p>
         </div>
         <div className="rounded-lg border bg-background p-2.5 sm:p-3">
           <p className="text-[10px] text-muted-foreground sm:text-xs">Avg R</p>
-          <p className="mt-1 text-sm font-semibold tabular-nums text-profit sm:text-lg">
+          <p className="mt-1 text-sm font-semibold text-profit tabular-nums sm:text-lg">
             +0.42R
           </p>
         </div>
         <div className="col-span-3 rounded-lg border bg-background p-3">
-          <p className="text-[10px] text-muted-foreground sm:text-xs">
-            Equity curve
-          </p>
+          <p className="text-[10px] text-muted-foreground sm:text-xs">Equity curve</p>
           <svg
             viewBox="0 0 560 120"
             className="mt-2 h-20 w-full sm:h-24"
@@ -213,14 +205,13 @@ export default function LandingPage() {
               <Zap className="size-3.5 text-profit" aria-hidden="true" />
               Built for MetaTrader 5
             </p>
-            <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
               Your MT5 trades, journaled automatically
             </h1>
-            <p className="mt-4 max-w-prose text-pretty text-base text-muted-foreground sm:text-lg">
-              Trading Journal syncs every deal from your MetaTrader 5 terminal
-              in realtime — then turns them into strategy-tagged, R-scored
-              analytics you can actually learn from. Private by design,
-              installable on your phone.
+            <p className="mt-4 max-w-prose text-base text-pretty text-muted-foreground sm:text-lg">
+              Trading Journal syncs every deal from your MetaTrader 5 terminal in
+              realtime — then turns them into strategy-tagged, R-scored analytics you
+              can actually learn from. Private by design, installable on your phone.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Button asChild size="lg">
@@ -239,7 +230,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="border-t bg-muted/30 scroll-mt-14">
+      <section id="features" className="scroll-mt-14 border-t bg-muted/30">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:py-20">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Everything a serious trading journal needs
@@ -249,14 +240,8 @@ export default function LandingPage() {
           </p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map(({ icon: Icon, title, body }) => (
-              <li
-                key={title}
-                className="rounded-xl border bg-card p-5 shadow-sm"
-              >
-                <Icon
-                  className="size-5 text-profit"
-                  aria-hidden="true"
-                />
+              <li key={title} className="rounded-xl border bg-card p-5 shadow-sm">
+                <Icon className="size-5 text-profit" aria-hidden="true" />
                 <h3 className="mt-3 text-sm font-semibold">{title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                   {body}
@@ -292,11 +277,20 @@ export default function LandingPage() {
               </li>
             ))}
           </ol>
+          <p className="mt-6 text-sm">
+            <Link
+              href="/guide"
+              className="inline-flex items-center gap-1 font-medium text-profit underline-offset-4 hover:underline"
+            >
+              Follow the step-by-step setup guide — download the EA and connect MT5
+              <span aria-hidden="true">→</span>
+            </Link>
+          </p>
         </div>
       </section>
 
       {/* FAQ — native details/summary keeps this zero-JS and accessible */}
-      <section id="faq" className="border-t bg-muted/30 scroll-mt-14">
+      <section id="faq" className="scroll-mt-14 border-t bg-muted/30">
         <div className="mx-auto w-full max-w-3xl px-4 py-14 sm:py-20">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Frequently asked questions
@@ -331,8 +325,7 @@ export default function LandingPage() {
             Start journaling in minutes
           </h2>
           <p className="mx-auto mt-2 max-w-prose text-muted-foreground">
-            Connect your MT5 terminal once — every trade after that journals
-            itself.
+            Connect your MT5 terminal once — every trade after that journals itself.
           </p>
           <Button asChild size="lg" className="mt-6">
             <Link href="/register">Create your free account</Link>

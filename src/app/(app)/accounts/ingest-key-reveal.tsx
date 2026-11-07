@@ -1,6 +1,7 @@
 "use client";
 
 import { KeyRound, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,16 @@ export function IngestKeyContent({ result }: { result: IngestKeyResult }) {
       >
         {result.key}
       </code>
+      <p className="text-xs text-muted-foreground">
+        Next: connect MetaTrader 5 —{" "}
+        <Link
+          href="/guide"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          follow the setup guide
+        </Link>{" "}
+        (download the EA, allow WebRequest, paste this key).
+      </p>
     </>
   );
 }

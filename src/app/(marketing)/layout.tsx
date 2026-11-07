@@ -9,11 +9,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
  * client JS — only the theme toggle ships a bundle here. Footer is part of
  * the shell because the landing hero provides the page's <main> content.
  */
-export default function MarketingLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
@@ -33,10 +29,13 @@ export default function MarketingLayout({
             />
             <span className="hidden min-[420px]:inline">Trading Journal</span>
           </Link>
-          <nav
-            aria-label="Site"
-            className="flex items-center gap-2 sm:gap-4"
-          >
+          <nav aria-label="Site" className="flex items-center gap-2 sm:gap-4">
+            <Link
+              href="/guide"
+              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground min-[420px]:inline-block"
+            >
+              Guide
+            </Link>
             <a
               href="#features"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
@@ -72,6 +71,9 @@ export default function MarketingLayout({
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-4 text-center text-sm text-muted-foreground sm:flex-row sm:justify-between sm:text-left">
           <p>Trading Journal — a private, realtime MetaTrader 5 journal.</p>
           <nav aria-label="Footer" className="flex items-center gap-4">
+            <Link className="transition-colors hover:text-foreground" href="/guide">
+              Setup guide
+            </Link>
             <a className="transition-colors hover:text-foreground" href="#faq">
               FAQ
             </a>

@@ -10,5 +10,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 1,
     },
+    {
+      url: new URL("/guide", siteUrl()).toString(),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
   ];
 }

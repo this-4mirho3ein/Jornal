@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/copy-ea-to-public.mjs && next dev",
+    "build": "node scripts/copy-ea-to-public.mjs && next build",
     "vercel-build": "pnpm db:migrate && pnpm build",
     "start": "next start",
     "lint": "eslint",

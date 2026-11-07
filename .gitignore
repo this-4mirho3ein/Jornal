@@ -43,3 +43,6 @@ next-env.d.ts
 # local image-driver storage (task 09)
 .uploads/
 .vercel-secrets.local
+
+# derived from mt5/JournalSync.mq5 by scripts/copy-ea-to-public.mjs
+/public/download/
