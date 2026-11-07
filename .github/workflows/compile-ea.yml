@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install MetaEditor (standalone, fallback: full MT5 terminal)
+      - name: Install MetaEditor (standalone, fallback full MT5)
         id: install
         shell: pwsh
         run: |
