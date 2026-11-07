@@ -10,7 +10,6 @@ import { DirectionBadge } from "@/components/shared/direction-badge";
 import { PnlText } from "@/components/shared/pnl-text";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StrategyBadge } from "@/components/shared/strategy-badge";
-import { StyleBadge } from "@/components/shared/style-badge";
 import type { TradeListRow } from "@/features/trades/queries";
 import {
   formatDateTimeShortInTz,
@@ -45,7 +44,6 @@ export function TradeTable({
             <TableHead className="text-right">R</TableHead>
             <TableHead className="text-right">Net P/L</TableHead>
             <TableHead>Strategy</TableHead>
-            <TableHead>Style</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden xl:table-cell">Account</TableHead>
           </TableRow>
@@ -91,13 +89,6 @@ export function TradeTable({
               <TableCell>
                 {row.strategyName ? (
                   <StrategyBadge name={row.strategyName} color={row.strategyColor} />
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {row.style ? (
-                  <StyleBadge style={row.style} source={row.styleSource} />
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}

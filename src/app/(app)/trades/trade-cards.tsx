@@ -2,7 +2,6 @@ import { DirectionBadge } from "@/components/shared/direction-badge";
 import { PnlText } from "@/components/shared/pnl-text";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StrategyBadge } from "@/components/shared/strategy-badge";
-import { StyleBadge } from "@/components/shared/style-badge";
 import type { TradeListRow } from "@/features/trades/queries";
 import { formatDateTimeShortInTz, formatDuration } from "@/lib/format";
 import Link from "next/link";
@@ -59,9 +58,6 @@ export function TradeCards({
           <div className="mt-2 flex flex-wrap gap-1.5">
             {row.strategyName ? (
               <StrategyBadge name={row.strategyName} color={row.strategyColor} />
-            ) : null}
-            {row.style ? (
-              <StyleBadge style={row.style} source={row.styleSource} />
             ) : null}
             <StatusBadge status={row.status} />
           </div>
