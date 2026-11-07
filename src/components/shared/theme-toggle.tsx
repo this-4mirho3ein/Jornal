@@ -40,9 +40,13 @@ export function ThemeToggle({ className }: { className?: string }) {
         className="absolute right-1 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
         aria-hidden="true"
       />
+      {/* 20px knob in the 24px track, inset 4px on each side: in light it
+          covers the moon glyph (4–18px), in dark it travels 20px so it covers
+          the sun glyph (26–40px). The previous 16px knob + 24px travel left a
+          2px sliver of the sun visible in dark mode. */}
       <span
         aria-hidden="true"
-        className="absolute left-1 top-1/2 size-4 -translate-y-1/2 rounded-full bg-background shadow-sm transition-transform dark:translate-x-6"
+        className="absolute left-1 top-1/2 size-5 -translate-y-1/2 rounded-full bg-background shadow-sm transition-transform dark:translate-x-5"
       />
     </button>
   );
