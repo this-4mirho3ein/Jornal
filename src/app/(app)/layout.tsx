@@ -80,7 +80,14 @@ function SwitcherFallback() {
   );
 }
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default function AppLayout({
+  children,
+  modal,
+}: {
+  children: ReactNode;
+  /** Parallel route slot — hosts @modal intercepting side sheets (§8.2). */
+  modal?: ReactNode;
+}) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
@@ -130,6 +137,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+      {modal}
     </div>
   );
 }
