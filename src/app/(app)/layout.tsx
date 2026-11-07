@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { connection } from "next/server";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,7 +16,7 @@ import { getActiveAccount } from "@/features/accounts/active-account";
 import { connectionLevel } from "@/features/accounts/connection";
 import { getCurrentUser } from "@/lib/auth/guards";
 
-export const metadata = {
+export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
@@ -40,6 +42,9 @@ async function UserArea() {
 async function SwitcherArea() {
   const user = await getCurrentUser();
   const { account, accounts } = await getActiveAccount(user.id);
+  // "Now" is an unstable value under cacheComponents — opt this subtree into
+  // request-time rendering (installed docs / blocking-prerender-current-time).
+  await connection();
   const now = new Date();
 
   const items: SwitcherAccount[] = accounts.map((item) => ({

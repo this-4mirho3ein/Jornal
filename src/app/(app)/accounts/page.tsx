@@ -1,5 +1,6 @@
 import { Wallet } from "lucide-react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AccountRow, type AccountRowData } from "@/app/(app)/accounts/account-row";
@@ -19,6 +20,8 @@ export const metadata: Metadata = { title: "Accounts" };
 async function AccountsContent() {
   const user = await getCurrentUser();
   const accounts = await getUserAccounts(user.id);
+  // Request-time clock (cacheComponents: blocking-prerender-current-time).
+  await connection();
   const now = new Date();
 
   const rows: AccountRowData[] = accounts.map((account) => ({
