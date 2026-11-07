@@ -45,6 +45,7 @@ input int    InpHeartbeatSec  = 60;       // heartbeat + queue flush period
 input int    InpTimeoutMs     = 8000;     // WebRequest timeout
 input int    InpBackfillDays  = 90;       // >0: send closed deals of last N days once at start
 input bool   InpVerbose       = true;     // log every HTTP status + queue flush
+input bool   InpBridgeMode    = false;    // true: EA only queues to disk; an external bridge (scripts/mt5-bridge.ts) drains the file — for mac/Wine hosts whose Options dialog cannot arm the WebRequest whitelist (ADR 0008)
 
 const string QUEUE_FILE      = "journal_queue.jsonl"; // in MQL5/Files
 const string KEY_FILE        = "journal_key.txt";     // in MQL5/Files - local only, never committed
@@ -292,6 +293,7 @@ void EnqueueEvent(string eventId, string type, string positionJson, string dealJ
 
 void FlushQueue()
 {
+   if(InpBridgeMode) return;            // ADR 0008: in bridge mode an external drainer owns the queue file
    if(g_flushing) return;
    g_flushing = true;
 
