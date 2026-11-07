@@ -68,19 +68,46 @@ export async function applyIngestEvent(
     }
 
     // §5.1.5 first-use binding + §5.1.7 account touch on every event.
+    // The EA-reported identity is the SOURCE OF TRUTH (ADR 0007):
+    //   broker/currency/isDemo — refreshed every event (no uniqueness risk);
+    //   login/server — the binding pair: a bound row adopts it whenever it
+    //   differs, UNLESS another row of the same user already carries that
+    //   login+server (conflict → skip, never duplicate the unique pair;
+    //   resolve the double manually in Accounts). Attaching MT5 therefore
+    //   makes the journal account become that exact login+server.
+    const loginServerChanged =
+      account.login === null ||
+      account.login !== event.account.login ||
+      account.server !== event.account.server;
+    let adoptLoginServer = false;
+    if (loginServerChanged) {
+      const siblings = await tx
+        .select({ id: tradingAccounts.id })
+        .from(tradingAccounts)
+        .where(
+          and(
+            eq(tradingAccounts.userId, account.userId),
+            eq(tradingAccounts.login, event.account.login),
+            eq(tradingAccounts.server, event.account.server),
+          ),
+        )
+        .limit(2);
+      adoptLoginServer = !siblings.some((s) => s.id !== account.id);
+    }
+
     await tx
       .update(tradingAccounts)
       .set({
         lastSeenAt: now,
         lastBalance: money(event.account.balance),
         lastEquity: money(event.account.equity),
-        ...(account.login === null
+        broker: event.account.company ?? null,
+        currency: event.account.currency,
+        isDemo: event.account.isDemo,
+        ...(loginServerChanged && adoptLoginServer
           ? {
               login: event.account.login,
               server: event.account.server,
-              broker: event.account.company ?? null,
-              currency: event.account.currency,
-              isDemo: event.account.isDemo,
             }
           : {}),
       })

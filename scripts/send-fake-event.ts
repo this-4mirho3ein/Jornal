@@ -9,7 +9,8 @@
  *   pnpm tsx scripts/send-fake-event.ts --key <INGEST_KEY> \
  *     [--url http://localhost:3000/api/ingest] \
  *     [--type full|open|modify|close|heartbeat|cash_op] \
- *     [--posId 777000101] [--symbol XAUUSD]
+ *     [--posId 777000101] [--symbol XAUUSD] \
+ *     [--login 53245507] [--server Alpari-MT5-Demo] [--demo]
  */
 interface Args {
   url: string;
@@ -17,6 +18,12 @@ interface Args {
   type: "full" | "deal_open" | "position_modify" | "deal_close" | "heartbeat" | "cash_op";
   posId: number;
   symbol: string;
+  /** MT5-reported identity — defaults to mock values, override to test the
+   *  real account binding (ADR 0007: the reducer adopts what the EA sends). */
+  login?: number;
+  server?: string;
+  demo?: boolean;
+  company?: string;
 }
 
 function parseArgs(argv: readonly string[]): Args {
@@ -45,6 +52,10 @@ function parseArgs(argv: readonly string[]): Args {
     }
     else if (flag === "--posId") { args.posId = Number(value); i++; }
     else if (flag === "--symbol") { args.symbol = value.toUpperCase(); i++; }
+    else if (flag === "--login") { args.login = Number(value); i++; }
+    else if (flag === "--server") { args.server = value; i++; }
+    else if (flag === "--demo") { args.demo = true; }
+    else if (flag === "--company") { args.company = value; i++; }
   }
   if (!args.key) {
     console.error("missing --key (the account ingest key)");
@@ -72,14 +83,14 @@ interface StoryStep {
 function buildStory(args: Args, t0: number): StoryStep[] {
   const meta = TICK_META[args.symbol] ?? DEFAULT_META;
   const pos = args.posId;
-  const login = 51234567 + (pos % 7);
+  const login = args.login ?? 51234567 + (pos % 7);
   const account = {
     login,
-    server: "ICMarketsSC-MT5",
-    company: "Raw Trading Ltd",
+    server: args.server ?? "ICMarketsSC-MT5",
+    company: args.company ?? "Raw Trading Ltd",
     currency: "USD",
     leverage: 500,
-    isDemo: false,
+    isDemo: args.demo ?? false,
   };
   const balance = 102_500 + (pos % 500);
   const entryBase = 2320 + (pos % 100) / 100;

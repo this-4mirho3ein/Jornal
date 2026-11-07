@@ -70,6 +70,13 @@ Optional inputs:
 
 ## 2. Strategy tagging (how your trades get labeled)
 
+**Account identity first (ADR 0007):** every event carries the terminal's
+own account snapshot (login, server, broker, currency, demo flag, balance).
+On the first event the journal automatically binds your account row to that
+exact `login + server` — the account in the website *becomes* the MetaTrader
+account, no manual matching. Only the display name stays yours to rename in
+Accounts.
+
 Two ways, both automatic — nothing else to do in the EA:
 
 - **Manual trading:** write a strategy code in the order **comment** field,
