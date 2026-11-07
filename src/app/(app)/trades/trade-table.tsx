@@ -1,3 +1,7 @@
+import { DirectionBadge } from "@/components/shared/direction-badge";
+import { PnlText } from "@/components/shared/pnl-text";
+import { StrategyBadge } from "@/components/shared/strategy-badge";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -6,22 +10,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DirectionBadge } from "@/components/shared/direction-badge";
-import { PnlText } from "@/components/shared/pnl-text";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { StrategyBadge } from "@/components/shared/strategy-badge";
+import { TradesRowLink } from "@/app/(app)/trades/row-link";
 import type { TradeListRow } from "@/features/trades/queries";
 import {
   formatDateTimeShortInTz,
   formatDuration,
   formatRMultiple,
 } from "@/lib/format";
+import { sessionLabelFor } from "@/lib/sessions";
 import Link from "next/link";
-import { TradesRowLink } from "@/app/(app)/trades/row-link";
 
 /**
  * Desktop table (spec §12.2) — plain server-rendered markup: sorting/filtering
  * live in the URL, so no client table library is needed (ADR 0006).
+ * Entry/exit, status and account live on the detail page (the list is always
+ * scoped to the active account); a session column (canonical UTC forex
+ * windows) replaces them.
  */
 export function TradeTable({
   rows,
@@ -38,14 +42,12 @@ export function TradeTable({
             <TableHead className="text-center">Opened</TableHead>
             <TableHead className="text-center">Symbol</TableHead>
             <TableHead className="text-center">Side</TableHead>
-            <TableHead className="text-right">Volume</TableHead>
-            <TableHead className="text-right">Entry → Exit</TableHead>
-            <TableHead className="text-right">Held</TableHead>
-            <TableHead className="text-right">R</TableHead>
-            <TableHead className="text-right">Net P/L</TableHead>
+            <TableHead className="text-center">Volume</TableHead>
+            <TableHead className="text-center">Session</TableHead>
+            <TableHead className="text-center">Held</TableHead>
+            <TableHead className="text-center">R</TableHead>
+            <TableHead className="text-center">Net P/L</TableHead>
             <TableHead className="text-center">Strategy</TableHead>
-            <TableHead className="text-center">Status</TableHead>
-            <TableHead className="hidden text-center xl:table-cell">Account</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -72,10 +74,10 @@ export function TradeTable({
               <TableCell className="text-center font-mono tabular-nums">
                 {row.volumeOpened ?? "—"}
               </TableCell>
-              <TableCell className="whitespace-nowrap text-center font-mono tabular-nums">
-                {row.avgEntryPrice ?? "—"}
-                <span className="mx-1 text-muted-foreground">→</span>
-                {row.closedAt ? (row.avgExitPrice ?? "—") : "—"}
+              <TableCell className="whitespace-nowrap text-center">
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  {row.openedAt ? sessionLabelFor(row.openedAt) : "—"}
+                </Badge>
               </TableCell>
               <TableCell className="whitespace-nowrap text-center text-muted-foreground">
                 {formatDuration(row.durationSeconds)}
@@ -92,12 +94,6 @@ export function TradeTable({
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
-              </TableCell>
-              <TableCell className="text-center">
-                <StatusBadge status={row.status} />
-              </TableCell>
-              <TableCell className="hidden text-muted-foreground xl:table-cell">
-                {row.accountName}
               </TableCell>
             </TradesRowLink>
           ))}

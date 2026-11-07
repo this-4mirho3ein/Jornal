@@ -15,7 +15,9 @@ export async function getUserAccounts(
     .select()
     .from(tradingAccounts)
     .where(conditions)
-    .orderBy(asc(tradingAccounts.createdAt));
+    // id tiebreak: seeded rows can share a createdAt timestamp — without a
+    // stable second key the "first account" default flips across restarts.
+    .orderBy(asc(tradingAccounts.createdAt), asc(tradingAccounts.id));
 }
 
 /** Ownership-checked single fetch; null when missing or not owned. */
