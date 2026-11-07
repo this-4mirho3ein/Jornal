@@ -42,3 +42,4 @@ next-env.d.ts
 
 # local image-driver storage (task 09)
 .uploads/
+.vercel-secrets.local
