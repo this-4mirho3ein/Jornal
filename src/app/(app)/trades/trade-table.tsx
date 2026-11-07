@@ -35,28 +35,28 @@ export function TradeTable({
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <TableRow className="hover:bg-transparent">
-            <TableHead>Opened</TableHead>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Side</TableHead>
+            <TableHead className="text-center">Opened</TableHead>
+            <TableHead className="text-center">Symbol</TableHead>
+            <TableHead className="text-center">Side</TableHead>
             <TableHead className="text-right">Volume</TableHead>
             <TableHead className="text-right">Entry → Exit</TableHead>
             <TableHead className="text-right">Held</TableHead>
             <TableHead className="text-right">R</TableHead>
             <TableHead className="text-right">Net P/L</TableHead>
-            <TableHead>Strategy</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden xl:table-cell">Account</TableHead>
+            <TableHead className="text-center">Strategy</TableHead>
+            <TableHead className="text-center">Status</TableHead>
+            <TableHead className="hidden text-center xl:table-cell">Account</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TradesRowLink key={row.id} href={`/trades/${row.id}`}>
-              <TableCell className="whitespace-nowrap text-muted-foreground">
+              <TableCell className="whitespace-nowrap text-center text-muted-foreground">
                 {row.openedAt
                   ? formatDateTimeShortInTz(row.openedAt, timezone)
                   : "—"}
               </TableCell>
-              <TableCell className="font-medium">
+              <TableCell className="text-center font-medium">
                 {/* Sheet interception + deep link (§8.2) */}
                 <Link
                   href={`/trades/${row.id}`}
@@ -66,34 +66,34 @@ export function TradeTable({
                   {row.symbol}
                 </Link>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <DirectionBadge direction={row.direction} />
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
+              <TableCell className="text-center font-mono tabular-nums">
                 {row.volumeOpened ?? "—"}
               </TableCell>
-              <TableCell className="whitespace-nowrap text-right font-mono tabular-nums">
+              <TableCell className="whitespace-nowrap text-center font-mono tabular-nums">
                 {row.avgEntryPrice ?? "—"}
                 <span className="mx-1 text-muted-foreground">→</span>
                 {row.closedAt ? (row.avgExitPrice ?? "—") : "—"}
               </TableCell>
-              <TableCell className="whitespace-nowrap text-right text-muted-foreground">
+              <TableCell className="whitespace-nowrap text-center text-muted-foreground">
                 {formatDuration(row.durationSeconds)}
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
+              <TableCell className="text-center font-mono tabular-nums">
                 {formatRMultiple(row.rMultiple)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-center">
                 <PnlText value={row.netProfit} />
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 {row.strategyName ? (
                   <StrategyBadge name={row.strategyName} color={row.strategyColor} />
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <StatusBadge status={row.status} />
               </TableCell>
               <TableCell className="hidden text-muted-foreground xl:table-cell">
