@@ -4,9 +4,13 @@ import {
   AlarmClock,
   ArrowRight,
   BookOpen,
+  ChevronRight,
   Download,
+  KeyRound,
   MonitorSmartphone,
+  Puzzle,
   ShieldCheck,
+  UserRound,
 } from "lucide-react";
 
 import { CopyButton } from "@/components/shared/copy-button";
@@ -157,6 +161,52 @@ export default function SetupGuidePage() {
         </div>
       </section>
 
+      {/* The road: three stages from zero to live trades */}
+      <section aria-label="The road to your first synced trade" className="border-b">
+        <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-10">
+          <ol className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-0">
+            {[
+              {
+                icon: UserRound,
+                title: "Create your journal account",
+                meta: "1 minute, free",
+              },
+              {
+                icon: KeyRound,
+                title: "Get your ingest key",
+                meta: "Accounts → New account",
+              },
+              {
+                icon: Puzzle,
+                title: "Install the EA in MT5",
+                meta: "detailed below — the only real work",
+              },
+            ].map(({ icon: Icon, title, meta }, index) => (
+              <li key={title} className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="min-w-0 flex-1 rounded-xl border bg-card p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-profit/10 text-profit">
+                      <Icon className="size-4" aria-hidden="true" />
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                      0{index + 1}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-snug font-medium">{title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{meta}</p>
+                </div>
+                {index < 2 ? (
+                  <ChevronRight
+                    className="hidden size-4 shrink-0 text-muted-foreground sm:block"
+                    aria-hidden="true"
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       {/* Before you start */}
       <section className="bg-muted/30">
         <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-12">
@@ -205,26 +255,49 @@ export default function SetupGuidePage() {
                 title="Create the account and copy your ingest key"
               />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+                <p>Everything below happens on this site — under two minutes:</p>
+                <ol className="ml-4 list-decimal space-y-1.5">
+                  <li>
+                    No account yet?{" "}
+                    <Link
+                      href="/register"
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      Register free
+                    </Link>{" "}
+                    (or{" "}
+                    <Link
+                      href="/login"
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      sign in
+                    </Link>
+                    ).
+                  </li>
+                  <li>
+                    Open <strong>Accounts</strong> and press <em>New account</em>.
+                  </li>
+                  <li>
+                    Fill in what you know — display name, broker, MT5 login and server,
+                    exactly as MT5 shows them. Everything is optional except the{" "}
+                    <strong>Demo</strong> switch; your MT5 login and server also attach
+                    themselves automatically on the EA’s first handshake.
+                  </li>
+                  <li>
+                    Press <strong>Create account</strong>. A panel reveals your ingest
+                    key (
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      tj_…
+                    </code>
+                    ) and <strong>stays open until you close it</strong> — press{" "}
+                    <strong>Copy key</strong> first, keep it somewhere safe, then close
+                    with <strong>I saved it</strong>.
+                  </li>
+                </ol>
                 <p>
-                  In the journal (after{" "}
-                  <Link
-                    href="/login"
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                  >
-                    signing in
-                  </Link>
-                  ), go to <strong>Accounts</strong> → <em>Add account</em> and enter
-                  your broker, login and server exactly as MT5 shows them. The journal
-                  creates an ingest key automatically and shows it once — copy it now
-                  (you can rotate it later).
-                </p>
-                <p>
-                  Place the key in
-                  <code className="ml-1 rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                    MQL5/Files/journal_key.txt
-                  </code>
-                  (one line) once you hit step 5 — or paste it into the EA input
-                  directly.
+                  Lost or closed the panel? No problem — press <em>Rotate key</em> on
+                  the account any time and copy the fresh key the same way (the old key
+                  stops working immediately).
                 </p>
               </div>
             </li>
