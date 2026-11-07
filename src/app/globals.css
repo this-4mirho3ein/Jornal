@@ -140,6 +140,27 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 preflight defaults buttons to `cursor: default` — every
+     interactive control gets the pointer back (§12.2 affordance). */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="checkbox"]:not(:disabled),
+  [role="combobox"]:not(:disabled),
+  [role="option"],
+  [role="switch"]:not(:disabled),
+  [role="tab"],
+  a[href],
+  select,
+  summary,
+  label,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
 }
 
 /* Motion discipline (§12.1): only 120–200ms micro transitions; respect reduced motion */
