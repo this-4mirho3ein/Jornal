@@ -1,0 +1,130 @@
+# Compiles the MT5 Expert Advisor (mt5/JournalSync.mq5 → JournalSync.ex5) in CI
+# and publishes the binary to public/download/JournalSync.ex5, which gets
+# deployed with the site (the /guide download + PWA flow serve it).
+#
+# Why CI: the MQL5 compiler ships inside MetaEditor 5 — proprietary,
+# Windows-only tooling that cannot run in the Next build or on macOS. A
+# GitHub Actions windows runner is the only place the .ex5 can be produced
+# from source in this repo. add-to-project loops are prevented by the paths
+# filter: publish commits only touch public/download/**, never mt5/**.
+name: Compile EA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mt5/JournalSync.mq5"
+      - ".github/workflows/compile-ea.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: compile-ea
+  cancel-in-progress: false
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MetaEditor (standalone, fallback: full MT5 terminal)
+        id: install
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          function Find-Editor {
+            $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, "$env:LOCALAPPDATA\Programs", "$env:APPDATA\MetaQuotes") | Where-Object { $_ -and (Test-Path $_) }
+            foreach ($root in $roots) {
+              $hit = Get-ChildItem -Path $root -Recurse -Filter metaeditor64.exe -ErrorAction SilentlyContinue |
+                Select-Object -First 1 -ExpandProperty FullName
+              if ($hit) { return $hit }
+            }
+            return $null
+          }
+
+          $editor = Find-Editor
+          if (-not $editor) {
+            Write-Host "Downloading standalone MetaEditor 5…"
+            Invoke-WebRequest -Uri "https://download.mql5.com/cdn/product/metaeditor/5.0/metaeditor5.exe" -OutFile "$env:TEMP\metaeditor5.exe"
+            $p = Start-Process -FilePath "$env:TEMP\metaeditor5.exe" -ArgumentList "/auto" -Wait -PassThru
+            Write-Host "installer exit: $($p.ExitCode)"
+            Start-Sleep -Seconds 5
+            $editor = Find-Editor
+          }
+          if (-not $editor) {
+            Write-Host "Standalone install failed — falling back to the full MT5 terminal…"
+            Invoke-WebRequest -Uri "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "$env:TEMP\mt5setup.exe"
+            $p = Start-Process -FilePath "$env:TEMP\mt5setup.exe" -ArgumentList "/auto" -Wait -PassThru
+            Write-Host "installer exit: $($p.ExitCode)"
+            Start-Sleep -Seconds 5
+            $editor = Find-Editor
+          }
+          if (-not $editor) { throw "metaeditor64.exe not found after both installers" }
+          Write-Host "Found editor: $editor"
+          "EDITOR=$editor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Compile JournalSync.mq5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $log = "$PWD\compile-log.txt"
+          Start-Process -FilePath $env:EDITOR -ArgumentList "/compile:`"$PWD\mt5\JournalSync.mq5`"","/log:`"$log`"" -Wait
+          Start-Sleep -Seconds 2
+          if (Test-Path $log) {
+            # MetaEditor writes the log as UTF-16LE
+            $text = Get-Content -Path $log -Encoding Unicode -Raw
+            $text | Out-File -FilePath "$PWD\compile-log.utf8.txt" -Encoding utf8
+            Write-Host $text
+          } else {
+            Write-Warning "MetaEditor produced no log file"
+          }
+          if (-not (Test-Path "$PWD\mt5\JournalSync.ex5")) {
+            throw "Compilation produced no JournalSync.ex5 — see log above"
+          }
+          $text2 = ""
+          if (Test-Path "$PWD\compile-log.utf8.txt") { $text2 = Get-Content "$PWD\compile-log.utf8.txt" -Raw }
+          if ($text2 -match ":\s*error|errors?\s+[1-9]") {
+            throw "MetaEditor reported compile errors — see log above"
+          }
+          Write-Host "Compile OK"
+
+      - name: Upload artifacts (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journalsync-ex5
+          path: |
+            mt5/JournalSync.ex5
+            compile-log.utf8.txt
+          if-no-files-found: warn
+
+      - name: Publish compiled EA + compile log to the repo
+        if: always()
+        shell: pwsh
+        run: |
+          git config user.name "compile-ea-bot"
+          git config user.email "actions@users.noreply.github.com"
+          $sha = git rev-parse --short HEAD
+          $msg = "chore(ea): publish compiled JournalSync.ex5 from $sha`n`nAuto-compiled by the Compile EA workflow from MetaEditor 5 (`$sha of mt5/JournalSync.mq5)."
+          if (Test-Path "$PWD\mt5\JournalSync.ex5") {
+            Copy-Item "$PWD\mt5\JournalSync.ex5" "$PWD\public\download\JournalSync.ex5" -Force
+          }
+          if (Test-Path "$PWD\compile-log.utf8.txt") {
+            New-Item -ItemType Directory -Force -Path "$PWD\mt5\.ci" | Out-Null
+            Copy-Item "$PWD\compile-log.utf8.txt" "$PWD\mt5\.ci\compile-log.txt" -Force
+            git add mt5/.ci/compile-log.txt
+          }
+          if (Test-Path "$PWD\public\download\JournalSync.ex5") {
+            git add public/download/JournalSync.ex5
+          }
+          if (git diff --cached --quiet) {
+            Write-Host "Nothing to publish (no change) — skipping commit"
+          } else {
+            git commit -m $msg
+            git push
+          }

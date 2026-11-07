@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -28,6 +31,15 @@ export const metadata: Metadata = {
 const ORIGIN = siteUrl().origin;
 const INGEST_URL = `${ORIGIN}/api/ingest`;
 const EA_DOWNLOAD = "/download/JournalSync.mq5";
+
+/**
+ * The compiled Expert Advisor exists once the Compile EA workflow has run on
+ * a Windows runner (the MQL5 compiler is proprietary Windows tooling). When
+ * present at build time, the .ex5 becomes the primary download and users can
+ * skip MetaEditor entirely; the .mq5 source stays available either way.
+ */
+const EA_COMPILED = "/download/JournalSync.ex5";
+const EA_COMPILED_EXISTS = existsSync(join(process.cwd(), "public", EA_COMPILED));
 
 /** Optional EA inputs (mt5/README.md §1) — defaults shown are v1.01 zero-config defaults. */
 const EA_INPUTS = [
@@ -147,16 +159,40 @@ export default function SetupGuidePage() {
             imports your <strong>last 90 days</strong> of closed deals automatically.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg">
-              {/* `download` forces a save-as instead of rendering MQL5 source in the tab */}
-              <a href={EA_DOWNLOAD} download="JournalSync.mq5">
-                <Download className="mr-1 inline size-4" aria-hidden="true" />
-                Download JournalSync.mq5
-              </a>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/register">Create a free account</Link>
-            </Button>
+            {EA_COMPILED_EXISTS ? (
+              <>
+                <Button asChild size="lg">
+                  {/* `download` forces a save-as instead of rendering in the tab */}
+                  <a href={EA_COMPILED} download="JournalSync.ex5">
+                    <Download className="mr-1 inline size-4" aria-hidden="true" />
+                    Download for MetaTrader 5
+                  </a>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/register">Create a free account</Link>
+                </Button>
+                <a
+                  href={EA_DOWNLOAD}
+                  download="JournalSync.mq5"
+                  className="basis-full text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground sm:basis-auto"
+                >
+                  Advanced: download the .mq5 source instead
+                </a>
+              </>
+            ) : (
+              <>
+                <Button asChild size="lg">
+                  {/* `download` forces a save-as instead of rendering MQL5 source in the tab */}
+                  <a href={EA_DOWNLOAD} download="JournalSync.mq5">
+                    <Download className="mr-1 inline size-4" aria-hidden="true" />
+                    Download JournalSync.mq5
+                  </a>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/register">Create a free account</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -303,10 +339,31 @@ export default function SetupGuidePage() {
             </li>
 
             <li className="rounded-xl border bg-card p-5 shadow-sm">
-              <StepHeader index={2} title="Install JournalSync.mq5 into the terminal" />
+              <StepHeader index={2} title="Install the Expert Advisor into the terminal" />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-                <ol className="ml-4 list-decimal space-y-1.5">
-                  <li>
+                {EA_COMPILED_EXISTS ? (
+                  <p>
+                    Download{" "}
+                    <a
+                      href={EA_COMPILED}
+                      download="JournalSync.ex5"
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      JournalSync.ex5
+                    </a>{" "}
+                    — it comes <strong>pre-compiled and ready to run</strong>, so
+                    MetaEditor is not needed at all. (Prefer source? Grab the{" "}
+                    <a
+                      href={EA_DOWNLOAD}
+                      download="JournalSync.mq5"
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      JournalSync.mq5
+                    </a>{" "}
+                    instead and see the compile note in step 4.)
+                  </p>
+                ) : (
+                  <p>
                     Download{" "}
                     <a
                       href={EA_DOWNLOAD}
@@ -316,7 +373,9 @@ export default function SetupGuidePage() {
                       JournalSync.mq5
                     </a>{" "}
                     (the file from the button above).
-                  </li>
+                  </p>
+                )}
+                <ol className="ml-4 list-decimal space-y-1.5">
                   <li>
                     In MT5: <strong>File → Open Data Folder</strong> → open{" "}
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
@@ -328,7 +387,10 @@ export default function SetupGuidePage() {
                     </code>
                     .
                   </li>
-                  <li>Copy the .mq5 file in there.</li>
+                  <li>
+                    Copy the {EA_COMPILED_EXISTS ? ".ex5" : ".mq5"} file in there
+                    (keep its name).
+                  </li>
                 </ol>
               </div>
             </li>
@@ -357,17 +419,40 @@ export default function SetupGuidePage() {
             </li>
 
             <li className="rounded-xl border bg-card p-5 shadow-sm">
-              <StepHeader index={4} title="Compile, then attach to ONE chart" />
+              <StepHeader
+                index={4}
+                title={EA_COMPILED_EXISTS ? "Attach to ONE chart" : "Compile, then attach to ONE chart"}
+              />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-                <p>
-                  In MT5 press <strong>F4</strong> (or Tools → MetaQuotes Language
-                  Editor), open{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                    JournalSync.mq5
-                  </code>{" "}
-                  from the Navigator’s Experts list and compile with <strong>F7</strong>{" "}
-                  — you want <em className="not-italic">0 errors</em> in the output.
-                </p>
+                {EA_COMPILED_EXISTS ? (
+                  <p>
+                    The <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      .ex5
+                    </code>{" "}
+                    you installed is already compiled — no MetaEditor step needed.
+                    (If you took the{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      .mq5
+                    </code>{" "}
+                    source instead: press <strong>F4</strong> for the MetaQuotes
+                    editor, open{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      JournalSync.mq5
+                    </code>{" "}
+                    and compile with <strong>F7</strong> — you want{" "}
+                    <em className="not-italic">0 errors</em>.)
+                  </p>
+                ) : (
+                  <p>
+                    In MT5 press <strong>F4</strong> (or Tools → MetaQuotes Language
+                    Editor), open{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      JournalSync.mq5
+                    </code>{" "}
+                    from the Navigator’s Experts list and compile with <strong>F7</strong>{" "}
+                    — you want <em className="not-italic">0 errors</em> in the output.
+                  </p>
+                )}
                 <p>
                   Back in the terminal, drag{" "}
                   <strong>Expert Advisors → JournalSync</strong> from the Navigator onto{" "}
