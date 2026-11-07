@@ -28,25 +28,67 @@
 //| events for ALL symbols (see mt5/README.md).                      |
 //+------------------------------------------------------------------+
 #property copyright "Trading Journal"
-#property version   "1.00"
+#property version   "1.01"
 #property strict
 
-input string InpApiUrl        = "https://YOUR-APP.vercel.app/api/ingest";
-input string InpApiKey        = "";      // Ingest key from the website
-input int    InpHeartbeatSec  = 60;      // heartbeat + queue flush period
-input int    InpTimeoutMs     = 8000;    // WebRequest timeout
-input int    InpBackfillDays  = 0;       // >0: send closed deals of last N days once at start
-input bool   InpVerbose       = false;
+// Zero-config defaults: leave the first two inputs EMPTY and the EA
+// configures itself on attach --
+//   URL -> MQL5/Files/journal_url.txt when present, else the local journal
+//          (http://localhost:3000/api/ingest). Override for production.
+//   Key -> MQL5/Files/journal_key.txt (one line: the ingest key from the
+//          website's Accounts page). That file lives only in this terminal's
+//          data folder -- NEVER commit or sync it (spec rule 6, no secrets
+//          in the repo); filling InpApiKey here still works as an override.
+input string InpApiUrl        = "";       // empty = journal_url.txt, else local journal
+input string InpApiKey        = "";       // empty = journal_key.txt in MQL5/Files
+input int    InpHeartbeatSec  = 60;       // heartbeat + queue flush period
+input int    InpTimeoutMs     = 8000;     // WebRequest timeout
+input int    InpBackfillDays  = 90;       // >0: send closed deals of last N days once at start
+input bool   InpVerbose       = true;     // log every HTTP status + queue flush
 
-const string QUEUE_FILE = "journal_queue.jsonl";   // in MQL5/Files
+const string QUEUE_FILE      = "journal_queue.jsonl"; // in MQL5/Files
+const string KEY_FILE        = "journal_key.txt";     // in MQL5/Files - local only, never committed
+const string URL_FILE        = "journal_url.txt";     // in MQL5/Files - optional URL override
+const string DEFAULT_API_URL = "http://localhost:3000/api/ingest";
+
+string       g_apiUrl        = "";
+string       g_apiKey        = "";
 datetime     g_lastHeartbeat = 0;
 bool         g_flushing = false;
+
+// First line of a UTF-8 text file in MQL5/Files ("" when missing) — used for
+// the per-terminal key/url secrets so this source file stays repo-clean.
+string ReadConfigLine(const string filename)
+{
+   if(!FileIsExist(filename)) return "";
+   int h = FileOpen(filename, FILE_READ|FILE_TXT|FILE_ANSI, '\t', CP_UTF8);
+   if(h == INVALID_HANDLE) return "";
+   string line = FileReadString(h);
+   FileClose(h);
+   StringTrimLeft(line);
+   StringTrimRight(line);
+   if(StringLen(line) > 0 && StringGetCharacter(line, 0) == 0xFEFF)
+      line = StringSubstr(line, 1);          // strip a BOM some editors add
+   return line;
+}
 
 //------------------------------------------------------------------
 int OnInit()
 {
-   if(StringLen(InpApiKey) < 10) { Alert("JournalSync: set InpApiKey"); return INIT_PARAMETERS_INCORRECT; }
+   g_apiKey = (StringLen(InpApiKey) >= 10) ? InpApiKey : ReadConfigLine(KEY_FILE);
+   if(StringLen(g_apiKey) < 10)
+   {
+      Alert("JournalSync: no ingest key - put it in MQL5\\Files\\journal_key.txt or fill InpApiKey");
+      return INIT_PARAMETERS_INCORRECT;
+   }
+   g_apiUrl = (StringLen(InpApiUrl) >= 8) ? InpApiUrl : ReadConfigLine(URL_FILE);
+   if(StringLen(g_apiUrl) < 8) g_apiUrl = DEFAULT_API_URL;
+
    EventSetTimer(1);
+   if(InpVerbose)
+      Print("JournalSync: url=", g_apiUrl,
+            " key=", StringSubstr(g_apiKey, 0, 8), "...",        // prefix only - never the full key
+            " backfill=", (string)InpBackfillDays, "d");
    if(InpBackfillDays > 0) Backfill(InpBackfillDays);
    EnqueueEvent("hb:" + (string)((long)TimeGMT()), "heartbeat", "", "");
    return INIT_SUCCEEDED;
@@ -294,9 +336,9 @@ int Post(const string json)
    char body[], res[]; string resHeaders;
    int count = StringToCharArray(json, body, 0, WHOLE_ARRAY, CP_UTF8);
    ArrayResize(body, count - 1);                        // strip trailing \0
-   string headers = "Content-Type: application/json\r\nAuthorization: Bearer " + InpApiKey + "\r\n";
+   string headers = "Content-Type: application/json\r\nAuthorization: Bearer " + g_apiKey + "\r\n";
    ResetLastError();
-   int code = WebRequest("POST", InpApiUrl, headers, InpTimeoutMs, body, res, resHeaders);
+   int code = WebRequest("POST", g_apiUrl, headers, InpTimeoutMs, body, res, resHeaders);
    if(code == -1)
    {
       Print("JournalSync: WebRequest error ", GetLastError(), " (is the URL whitelisted in Tools>Options>Expert Advisors?)");
