@@ -36,6 +36,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          $diag = New-Object System.Collections.Generic.List[string]
 
           function Find-Editor {
             $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, "$env:LOCALAPPDATA\Programs", "$env:APPDATA\MetaQuotes") | Where-Object { $_ -and (Test-Path $_) }
@@ -49,22 +50,35 @@ jobs:
 
           $editor = Find-Editor
           if (-not $editor) {
-            Write-Host "Downloading standalone MetaEditor 5…"
-            Invoke-WebRequest -Uri "https://download.mql5.com/cdn/product/metaeditor/5.0/metaeditor5.exe" -OutFile "$env:TEMP\metaeditor5.exe"
-            $p = Start-Process -FilePath "$env:TEMP\metaeditor5.exe" -ArgumentList "/auto" -Wait -PassThru
-            Write-Host "installer exit: $($p.ExitCode)"
-            Start-Sleep -Seconds 5
+            try {
+              Invoke-WebRequest -Uri "https://download.mql5.com/cdn/product/metaeditor/5.0/metaeditor5.exe" -OutFile "$env:TEMP\metaeditor5.exe" -UseBasicParsing
+              $diag.Add("standalone editor download: $((Get-Item "$env:TEMP\metaeditor5.exe").Length) bytes")
+              $p = Start-Process -FilePath "$env:TEMP\metaeditor5.exe" -ArgumentList "/auto" -Wait -PassThru
+              $diag.Add("standalone editor installer exit: $($p.ExitCode)")
+            } catch {
+              $diag.Add("standalone editor path failed: $($_.Exception.Message)")
+            }
+            Start-Sleep -Seconds 8
             $editor = Find-Editor
           }
           if (-not $editor) {
-            Write-Host "Standalone install failed — falling back to the full MT5 terminal…"
-            Invoke-WebRequest -Uri "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "$env:TEMP\mt5setup.exe"
-            $p = Start-Process -FilePath "$env:TEMP\mt5setup.exe" -ArgumentList "/auto" -Wait -PassThru
-            Write-Host "installer exit: $($p.ExitCode)"
-            Start-Sleep -Seconds 5
+            try {
+              Invoke-WebRequest -Uri "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "$env:TEMP\mt5setup.exe" -UseBasicParsing
+              $diag.Add("mt5 terminal download: $((Get-Item "$env:TEMP\mt5setup.exe").Length) bytes")
+              $p = Start-Process -FilePath "$env:TEMP\mt5setup.exe" -ArgumentList "/auto" -Wait -PassThru
+              $diag.Add("mt5 terminal installer exit: $($p.ExitCode)")
+            } catch {
+              $diag.Add("mt5 terminal path failed: $($_.Exception.Message)")
+            }
+            Start-Sleep -Seconds 8
             $editor = Find-Editor
           }
-          if (-not $editor) { throw "metaeditor64.exe not found after both installers" }
+
+          $diag | Set-Content -Path "$PWD\install-diag.txt" -Encoding utf8
+          if (-not $editor) {
+            Get-Content "$PWD\install-diag.txt" | Write-Host
+            throw "metaeditor64.exe not found after all install attempts"
+          }
           Write-Host "Found editor: $editor"
           "EDITOR=$editor" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -118,6 +132,15 @@ jobs:
             New-Item -ItemType Directory -Force -Path "$PWD\mt5\.ci" | Out-Null
             Copy-Item "$PWD\compile-log.utf8.txt" "$PWD\mt5\.ci\compile-log.txt" -Force
             git add mt5/.ci/compile-log.txt
+          }
+          # When the run did NOT produce the binary (install/compile failed),
+          # publish the diagnostics so the failure is readable from the repo.
+          if (-not (Test-Path "$PWD\public\download\JournalSync.ex5")) {
+            if (Test-Path "$PWD\install-diag.txt") {
+              New-Item -ItemType Directory -Force -Path "$PWD\mt5\.ci" | Out-Null
+              Copy-Item "$PWD\install-diag.txt" "$PWD\mt5\.ci\install-diag.txt" -Force
+              git add mt5/.ci/install-diag.txt
+            }
           }
           if (Test-Path "$PWD\public\download\JournalSync.ex5") {
             git add public/download/JournalSync.ex5
