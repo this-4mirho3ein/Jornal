@@ -7,12 +7,12 @@ site, the internet, or the terminal itself goes down and restarts.
 
 What it sends:
 
-| Event             | When                                                       |
-| ----------------- | ---------------------------------------------------------- |
-| `deal_open`       | a position opens (entry deal executed)                     |
-| `deal_close`      | a deal exits (full close, partial close, SL/TP, stop-out)  |
-| `position_modify` | SL/TP changed on an open position                          |
-| `cash_op`         | deposit / withdrawal / credit / bonus (balance operations) |
+| Event             | When                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `deal_open`       | a position opens (entry deal executed)                                              |
+| `deal_close`      | a deal exits (full close, partial close, SL/TP, stop-out)                           |
+| `position_modify` | SL/TP changed on an open position                                                   |
+| `cash_op`         | deposit / withdrawal / credit / bonus (balance operations)                          |
 | `heartbeat`       | every `InpHeartbeatSec` (powers the Connected / Offline badge and equity snapshots) |
 
 Partial closes produce one `deal_close` per exit deal — the journal
@@ -45,8 +45,10 @@ and out-of-order delivery are always safe.
 6. Set the inputs — or leave them empty: **with v1.01 defaults the EA
    configures itself**:
    - `InpApiUrl` — empty uses `MQL5/Files/journal_url.txt` when present, else
-     the local journal (`http://localhost:3000/api/ingest`). Point it at
-     `https://YOUR-APP.vercel.app/api/ingest` for production.
+     the **built-in production journal**
+     (`https://amirosein-journal.vercel.app/api/ingest`) — so the standard
+     setup needs nothing typed at all. Override (full URL, must end with
+     `/api/ingest`) only if you self-host.
    - `InpApiKey` — empty uses `MQL5/Files/journal_key.txt` (one line: the
      ingest key from the **Accounts** page). Create that file once per
      terminal and you never touch the inputs again; filling the input still
@@ -61,19 +63,19 @@ and out-of-order delivery are always safe.
 
 Optional inputs:
 
-| Input             | Default | Meaning                                                       |
-| ----------------- | ------- | ------------------------------------------------------------- |
-| `InpHeartbeatSec` | `60`    | heartbeat + queue-flush cadence (seconds)                     |
-| `InpTimeoutMs`    | `8000`  | WebRequest timeout                                            |
+| Input             | Default | Meaning                                                                               |
+| ----------------- | ------- | ------------------------------------------------------------------------------------- |
+| `InpHeartbeatSec` | `60`    | heartbeat + queue-flush cadence (seconds)                                             |
+| `InpTimeoutMs`    | `8000`  | WebRequest timeout                                                                    |
 | `InpBackfillDays` | `90`    | > 0: on start, send all closed deals of the last N days (idempotent — safe to re-run) |
-| `InpVerbose`      | `true`  | log every HTTP status and queue flush to the Experts log      |
+| `InpVerbose`      | `true`  | log every HTTP status and queue flush to the Experts log                              |
 
 ## 2. Strategy tagging (how your trades get labeled)
 
 **Account identity first (ADR 0007):** every event carries the terminal's
 own account snapshot (login, server, broker, currency, demo flag, balance).
 On the first event the journal automatically binds your account row to that
-exact `login + server` — the account in the website *becomes* the MetaTrader
+exact `login + server` — the account in the website _becomes_ the MetaTrader
 account, no manual matching. Only the display name stays yours to rename in
 Accounts.
 
@@ -136,7 +138,7 @@ stores UTC and displays it in your account timezone.
 The EA only works while the desktop terminal is open and connected. Options:
 
 - **MetaQuotes built-in VPS** — right-click the account in the Navigator →
-  *Register a Virtual Server*; you can migrate an already-running terminal
+  _Register a Virtual Server_; you can migrate an already-running terminal
   (EA included). Simplest; ~$10–15/mo.
 - **Any cheap Windows VPS** (~$5–10/mo) — install MT5 + EA, log in, leave it.
 - **Your own PC** — fine for testing; the terminal must stay open.
@@ -146,17 +148,17 @@ The EA only works while the desktop terminal is open and connected. Options:
 
 ## 6. Troubleshooting
 
-| Symptom                                                        | Cause / fix                                                                                                                                           |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Log: `WebRequest error 4060` / `4014`                          | WebRequest is not allowed: tick **Allow WebRequest for listed URL** (Tools → Options → Expert Advisors) and restart MT5 after adding the URL.         |
-| Log: `WebRequest error 4060` even though whitelisted            | URL mismatch: the whitelist stores **origins only** (`https://yourapp.vercel.app`, no `/path`), and `http` vs `https` are different origins.          |
-| Server replies `401`                                            | Wrong/rotated `InpApiKey`, or a key for a different account. Re-copy the key from the Accounts page. Rate-limited requests reply `429` instead.       |
+| Symptom                                                                         | Cause / fix                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Log: `WebRequest error 4060` / `4014`                                           | WebRequest is not allowed: tick **Allow WebRequest for listed URL** (Tools → Options → Expert Advisors) and restart MT5 after adding the URL.                                                   |
+| Log: `WebRequest error 4060` even though whitelisted                            | URL mismatch: the whitelist stores **origins only** (`https://yourapp.vercel.app`, no `/path`), and `http` vs `https` are different origins.                                                    |
+| Server replies `401`                                                            | Wrong/rotated `InpApiKey`, or a key for a different account. Re-copy the key from the Accounts page. Rate-limited requests reply `429` instead.                                                 |
 | `Alert: no ingest key - put it in MQL5\Files\journal_key.txt or fill InpApiKey` | The key file `journal_key.txt` is missing from the terminal's `MQL5/Files/` and `InpApiKey` is empty. Create the file (one line: key from the Accounts page) or fill the input, then re-attach. |
-| No events arrive                                                | "Algo trading" enabled? EA attached to only **one** chart? Key/URL inputs set? Watch the Experts tab with `InpVerbose = true`.                          |
-| `journal_queue.jsonl` keeps growing in `MQL5/Files`             | The site is unreachable (or 5xx) — events are safe on disk and flush in order once connectivity returns. Check the site and your whitelisted origin. |
-| Same events applied twice?                                      | They aren't — event IDs are deterministic (`deal:<ticket>`), and the server dedupes replays (`{"duplicate":true}`), including after restarts/backfills. |
-| Deposit/withdrawal shows wrong type                             | The journal derives deposit vs withdrawal from the amount sign — check the operation on the broker side.                                              |
-| Compile warnings on your MetaEditor build                       | The file follows current MQL5 docs; minor warnings on older builds are expected — fix locally and keep structure/behavior (spec §6 note).             |
+| No events arrive                                                                | "Algo trading" enabled? EA attached to only **one** chart? Key/URL inputs set? Watch the Experts tab with `InpVerbose = true`.                                                                  |
+| `journal_queue.jsonl` keeps growing in `MQL5/Files`                             | The site is unreachable (or 5xx) — events are safe on disk and flush in order once connectivity returns. Check the site and your whitelisted origin.                                            |
+| Same events applied twice?                                                      | They aren't — event IDs are deterministic (`deal:<ticket>`), and the server dedupes replays (`{"duplicate":true}`), including after restarts/backfills.                                         |
+| Deposit/withdrawal shows wrong type                                             | The journal derives deposit vs withdrawal from the amount sign — check the operation on the broker side.                                                                                        |
+| Compile warnings on your MetaEditor build                                       | The file follows current MQL5 docs; minor warnings on older builds are expected — fix locally and keep structure/behavior (spec §6 note).                                                       |
 
 ## 7. Deviations from the spec §6 skeleton
 
@@ -178,9 +180,12 @@ of them inline) additionally:
 
 6. zero-config attach: empty `InpApiKey`/`InpApiUrl` resolve from
    `MQL5/Files/journal_key.txt` / `journal_url.txt` (URL falls back to the
-   local journal), `InpBackfillDays` defaults to `90` and `InpVerbose` to
-   `true`; the init log prints the URL and only an 8-char key prefix — the
-   full key never reaches logs or the repo.
+   built-in production site, `https://amirosein-journal.vercel.app/api/ingest` —
+   localhost only when a `journal_url.txt` says so), `InpBackfillDays` defaults
+   to `90` and `InpVerbose` to `true`; the init log prints the URL and only an
+   8-char key prefix — the full key never reaches logs or the repo. v1.01+
+   attach diagnostics: a URL without `/api/ingest` or bridge mode without a
+   bridge process prints a WARNING to the Experts log at attach.
 
 MQL5 cannot be compiled in this repo (Windows-only toolchain) — the file was
 verified by line-by-line review against MQL5 documentation, and the full

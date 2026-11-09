@@ -33,13 +33,17 @@
 
 // Zero-config defaults: leave the first two inputs EMPTY and the EA
 // configures itself on attach --
-//   URL -> MQL5/Files/journal_url.txt when present, else the local journal
-//          (http://localhost:3000/api/ingest). Override for production.
+//   URL -> MQL5/Files/journal_url.txt when present, else the BUILT-IN
+//          production journal (https://amirosein-journal.vercel.app/api/ingest).
+//          Override only if you self-host the journal.
 //   Key -> MQL5/Files/journal_key.txt (one line: the ingest key from the
 //          website's Accounts page). That file lives only in this terminal's
 //          data folder -- NEVER commit or sync it (spec rule 6, no secrets
 //          in the repo); filling InpApiKey here still works as an override.
-input string InpApiUrl        = "";       // full ingest URL, MUST end with /api/ingest
+//          InpApiUrl: empty = journal_url.txt when present, else the BUILT-IN
+//          production journal URL — attach with empty inputs and it journals
+//          to the public site; override only when self-hosting.
+input string InpApiUrl        = "";       // empty = journal_url.txt, else built-in https://amirosein-journal.vercel.app/api/ingest — set only if self-hosting
 input string InpApiKey        = "";       // empty = journal_key.txt in MQL5/Files
 input int    InpHeartbeatSec  = 60;       // heartbeat + queue flush period
 input int    InpTimeoutMs     = 8000;     // WebRequest timeout
@@ -50,7 +54,7 @@ input bool   InpBridgeMode    = false;    // true = NO network: queue to disk on
 const string QUEUE_FILE      = "journal_queue.jsonl"; // in MQL5/Files
 const string KEY_FILE        = "journal_key.txt";     // in MQL5/Files - local only, never committed
 const string URL_FILE        = "journal_url.txt";     // in MQL5/Files - optional URL override
-const string DEFAULT_API_URL = "http://localhost:3000/api/ingest";
+const string DEFAULT_API_URL = "https://amirosein-journal.vercel.app/api/ingest"; // the product site
 
 string       g_apiUrl        = "";
 string       g_apiKey        = "";
