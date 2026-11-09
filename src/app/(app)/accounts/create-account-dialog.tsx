@@ -132,23 +132,28 @@ export function CreateAccountDialog({
         </DialogHeader>
         {reveal ? (
           reveal.reactivated ? (
-            // Re-add of a removed account — nothing is created: the original
-            // row, its trades and its ingest key all come back untouched.
+            // Re-add of a removed account: the original row comes back (its
+            // trades and binding untouched) and the key is ROTATED — the raw
+            // key can never be shown twice, so a fresh one is issued here and
+            // the previous key retires immediately (the EA must be updated).
             <div className="flex flex-col gap-3">
               <p className="flex items-start gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
                 <ArchiveRestore className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
-                  <strong>“{reveal.account.displayName}” is back.</strong> Its trades,
-                  MT5 binding and ingest key are exactly as they were — the EA keeps
-                  journaling with the key it already has.
+                  <strong>“{reveal.account.displayName}” is back.</strong> Its trades
+                  and MT5 binding are exactly as they were. Because a key can only be
+                  shown once, a <strong>fresh key</strong> was issued below and the
+                  previous one stopped working — update your EA (
+                  <code className="font-mono">journal_key.txt</code> or the InpApiKey
+                  input) with the new key.
                 </span>
               </p>
-              <p className="text-xs text-muted-foreground">
-                Lost the ingest key? Rotate it from the Accounts page — the old key
-                stops working the moment you rotate.
-              </p>
+              <IngestKeyContent
+                result={{ key: reveal.key ?? "", keyPrefix: reveal.keyPrefix }}
+              />
               <div className="flex justify-end gap-2">
-                <Button onClick={() => handleOpenChange(false)}>Done</Button>
+                <CopyButton value={reveal.key ?? ""} label="Copy key" size="default" />
+                <Button onClick={() => handleOpenChange(false)}>I saved it</Button>
               </div>
             </div>
           ) : (

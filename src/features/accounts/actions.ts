@@ -78,7 +78,6 @@ export async function createAccountWithKey(
           id: tradingAccounts.id,
           displayName: tradingAccounts.displayName,
           archivedAt: tradingAccounts.archivedAt,
-          keyPrefix: tradingAccounts.ingestKeyPrefix,
         })
         .from(tradingAccounts)
         .where(
@@ -96,9 +95,18 @@ export async function createAccountWithKey(
             error: `“${existing.displayName}” already uses this broker login + server — it's on your Accounts list. Attach the EA to that row, or rotate its key if you want a fresh one.`,
           };
         }
+        // Reactivate the original row (trades + binding come back) and ROTATE
+        // the key while at it: the raw key could never be shown twice (only
+        // its hash is stored), so the only honest way to "show the key again"
+        // is to issue a fresh one — the old key retires immediately.
+        const freshKey = generateIngestKey();
         const [restored] = await db
           .update(tradingAccounts)
-          .set({ archivedAt: null })
+          .set({
+            archivedAt: null,
+            ingestKeyHash: hashIngestKey(freshKey),
+            ingestKeyPrefix: ingestKeyPrefix(freshKey),
+          })
           .where(eq(tradingAccounts.id, existing.id))
           .returning();
         revalidateAccountPages();
@@ -106,8 +114,8 @@ export async function createAccountWithKey(
           ok: true,
           data: {
             account: restored,
-            key: null,
-            keyPrefix: existing.keyPrefix,
+            key: freshKey,
+            keyPrefix: ingestKeyPrefix(freshKey),
             reactivated: true,
           },
         };
