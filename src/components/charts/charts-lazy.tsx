@@ -27,3 +27,13 @@ export const RDistributionLazy = dynamic(
   () => import("@/components/charts/charts").then((m) => m.RDistributionChart),
   { ssr: false, loading: () => <ChartSkeleton height={200} /> },
 );
+
+export const WinLossDonutLazy = dynamic(
+  () => import("@/components/charts/charts").then((m) => m.WinLossDonut),
+  { ssr: false, loading: () => <ChartSkeleton height={210} /> },
+);
+
+export const BreakdownColumnsLazy = dynamic(
+  () => import("@/components/charts/charts").then((m) => m.BreakdownColumns),
+  { ssr: false, loading: () => <ChartSkeleton height={220} /> },
+);

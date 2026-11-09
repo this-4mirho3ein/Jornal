@@ -25,12 +25,7 @@ export interface Breakdowns {
   byHour: BreakdownRow[];
 }
 
-export type BreakdownKind =
-  | "strategy"
-  | "symbol"
-  | "style"
-  | "weekday"
-  | "hour";
+export type BreakdownKind = "strategy" | "symbol" | "style" | "weekday" | "hour";
 
 function labelExpr(kind: BreakdownKind, timezone: string): SQL {
   switch (kind) {
@@ -78,9 +73,13 @@ export async function getBreakdown(
     order by sum(t.net_profit) desc
     limit 20
   `);
-  return rawRows<{ label: string; net: string; n: number; wins: number; avg_r: string | null }>(
-    result,
-  ).map((row) => ({
+  return rawRows<{
+    label: string;
+    net: string;
+    n: number;
+    wins: number;
+    avg_r: string | null;
+  }>(result).map((row) => ({
     label: String(row.label),
     net: String(row.net),
     n: Number(row.n),
@@ -204,4 +203,45 @@ export async function getRDistribution(
     label,
     n: Number(row[`b${index}`] ?? 0),
   }));
+}
+
+export interface WinLossBe {
+  wins: number;
+  losses: number;
+  breakeven: number;
+  net: string;
+}
+
+/**
+ * Win / loss / breakeven counts for the analytics donut (closed trades only,
+ * same period semantics as getRDistribution; BE = net_profit === 0, matching
+ * the win-rate `decided` handling in getStyleCompare).
+ */
+export async function getWinLossBe(
+  userId: string,
+  accountId: string | null,
+  startIso: string | null,
+): Promise<WinLossBe> {
+  "use cache";
+  cacheTag(dashboardCacheTag(userId, accountId));
+  const accountCond = accountId ? sql` and a.id = ${accountId}` : sql``;
+  const startCond = startIso ? sql` and t.closed_at >= ${startIso}` : sql``;
+  const result = await db.execute(sql`
+    select
+      count(*) filter (where t.net_profit > 0)::int as wins,
+      count(*) filter (where t.net_profit = 0)::int as be,
+      count(*) filter (where t.net_profit < 0)::int as losses,
+      coalesce(sum(t.net_profit), 0)::text as net
+    from trades t
+    join trading_accounts a on a.id = t.account_id
+    where a.user_id = ${userId} and t.status = 'closed'
+      ${accountCond}${startCond}
+  `);
+  const row = rawRows<Record<string, number | string>>(result)[0] ?? {};
+  return {
+    wins: Number(row.wins ?? 0),
+    losses: Number(row.losses ?? 0),
+    breakeven: Number(row.be ?? 0),
+    net: String(row.net ?? "0"),
+  };
 }

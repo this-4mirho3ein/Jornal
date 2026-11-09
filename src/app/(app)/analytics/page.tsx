@@ -5,7 +5,9 @@ import { connection } from "next/server";
 
 import {
   BreakdownBarsLazy,
+  BreakdownColumnsLazy,
   RDistributionLazy,
+  WinLossDonutLazy,
 } from "@/components/charts/charts-lazy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -22,6 +24,7 @@ import {
   getBreakdowns,
   getRDistribution,
   getStyleCompare,
+  getWinLossBe,
 } from "@/features/analytics/queries";
 import {
   parseDashboardPeriod,
@@ -41,7 +44,8 @@ export default function AnalyticsPage(props: PageProps<"/analytics">) {
       <div>
         <h1 className="text-lg font-semibold">Analytics</h1>
         <p className="text-sm text-muted-foreground">
-          Breakdowns by strategy, symbol, style, weekday and session hour — closed trades only.
+          Breakdowns by strategy, symbol, style, weekday and session hour — closed
+          trades only.
         </p>
       </div>
       <Suspense fallback={<AnalyticsSkeleton />}>
@@ -51,13 +55,7 @@ export default function AnalyticsPage(props: PageProps<"/analytics">) {
   );
 }
 
-function RowTable({
-  rows,
-  currency,
-}: {
-  rows: BreakdownRow[];
-  currency: string;
-}) {
+function RowTable({ rows, currency }: { rows: BreakdownRow[]; currency: string }) {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -94,10 +92,13 @@ function BreakdownCard({
   title,
   rows,
   currency,
+  variant = "bars",
 }: {
   title: string;
   rows: BreakdownRow[];
   currency: string;
+  /** bars = horizontal (long labels); columns = vertical (time-like axes). */
+  variant?: "bars" | "columns";
 }) {
   if (rows.length === 0) return null;
   return (
@@ -106,10 +107,17 @@ function BreakdownCard({
         <CardTitle className="text-sm">{title}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
-        <BreakdownBarsLazy
-          data={rows.map((row) => ({ label: row.label, net: row.net }))}
-          currency={currency}
-        />
+        {variant === "bars" ? (
+          <BreakdownBarsLazy
+            data={rows.map((row) => ({ label: row.label, net: row.net }))}
+            currency={currency}
+          />
+        ) : (
+          <BreakdownColumnsLazy
+            data={rows.map((row) => ({ label: row.label, net: row.net }))}
+            currency={currency}
+          />
+        )}
         <RowTable rows={rows} currency={currency} />
       </CardContent>
     </Card>
@@ -130,14 +138,16 @@ async function AnalyticsContent({
   const period = parseDashboardPeriod(params.period);
   const startIso = periodStartIso(period, new Date()); // request-time clock
 
-  const [breakdowns, styleCompare, rDist] = await Promise.all([
+  const [breakdowns, styleCompare, rDist, winLoss] = await Promise.all([
     getBreakdowns(scope.userId, scope.accountId, startIso, scope.timezone),
     getStyleCompare(scope.userId, scope.accountId, startIso),
     getRDistribution(scope.userId, scope.accountId, startIso),
+    getWinLossBe(scope.userId, scope.accountId, startIso),
   ]);
 
   const total = breakdowns.bySymbol.reduce((sum, row) => sum + row.n, 0);
-  const money = (value: string): string => formatMoney(value, { currency: scope.currency });
+  const money = (value: string): string =>
+    formatMoney(value, { currency: scope.currency });
   const weekdayRows = breakdowns.byWeekday.map((row) => ({
     ...row,
     label: weekdayLabel(row.label),
@@ -171,6 +181,28 @@ async function AnalyticsContent({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Win rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WinLossDonutLazy
+              wins={winLoss.wins}
+              losses={winLoss.losses}
+              breakeven={winLoss.breakeven}
+              net={winLoss.net}
+              currency={scope.currency}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">R-multiple distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RDistributionLazy data={rDist} />
+          </CardContent>
+        </Card>
         {breakdowns.byStrategy.length > 0 ? (
           <BreakdownCard
             title="By strategy"
@@ -193,19 +225,20 @@ async function AnalyticsContent({
           />
         ) : null}
         {weekdayRows.length > 0 ? (
-          <BreakdownCard title="By weekday" rows={weekdayRows} currency={scope.currency} />
+          <BreakdownCard
+            title="By weekday"
+            rows={weekdayRows}
+            currency={scope.currency}
+            variant="columns"
+          />
         ) : null}
         {hourRows.length > 0 ? (
-          <BreakdownCard title="By session hour" rows={hourRows} currency={scope.currency} />
+          <BreakdownCard
+            title="By session hour"
+            rows={hourRows}
+            currency={scope.currency}
+          />
         ) : null}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">R-multiple distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RDistributionLazy data={rDist} />
-          </CardContent>
-        </Card>
       </div>
 
       <Card>
@@ -275,9 +308,7 @@ function StyleCompareCells({
         {row.profitFactor ?? "—"}
       </TableCell>
       <TableCell className="text-right text-xs">
-        {row.avgDurationSeconds === null
-          ? "—"
-          : formatDuration(row.avgDurationSeconds)}
+        {row.avgDurationSeconds === null ? "—" : formatDuration(row.avgDurationSeconds)}
       </TableCell>
       <TableCell className="text-right font-mono text-xs tabular-nums">
         {money(row.net)}
