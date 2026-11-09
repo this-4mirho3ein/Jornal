@@ -74,6 +74,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link className="transition-colors hover:text-foreground" href="/guide">
               Setup guide
             </Link>
+            <Link
+              className="transition-colors hover:text-foreground"
+              href="/tools/manager-pro"
+            >
+              ManagerPro EA
+            </Link>
             <a className="transition-colors hover:text-foreground" href="#faq">
               FAQ
             </a>

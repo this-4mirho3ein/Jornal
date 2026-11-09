@@ -318,6 +318,37 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* More from the author — standalone tools (not part of the journal) */}
+      <section id="tools" className="scroll-mt-14 border-t">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:py-16">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            More from the author — not part of the journal
+          </p>
+          <div className="mt-4 grid gap-4 md:grid-cols-1">
+            <div className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold sm:text-base">
+                  J-ManagerPro V7 — money-management EA for MetaTrader 5
+                </h3>
+                <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  A standalone money-management Expert Advisor that runs inside your
+                  terminal while you trade. Separate product, compiled and ready to run
+                  — it does not connect to the Trading Journal and needs no account
+                  here.
+                </p>
+              </div>
+              <Link
+                href="/tools/manager-pro"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-profit/10 px-4 py-2 text-sm font-medium text-profit transition-colors hover:bg-profit/20"
+              >
+                View &amp; download
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Closing CTA */}
       <section>
         <div className="mx-auto w-full max-w-6xl px-4 py-14 text-center sm:py-20">

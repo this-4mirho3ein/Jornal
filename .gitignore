@@ -45,4 +45,4 @@ next-env.d.ts
 .vercel-secrets.local
 
 # derived from mt5/JournalSync.mq5 by scripts/copy-ea-to-public.mjs
-/public/download/
+/public/download/JournalSync.mq5

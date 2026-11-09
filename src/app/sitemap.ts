@@ -15,5 +15,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    {
+      url: new URL("/tools/manager-pro", siteUrl()).toString(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
   ];
 }
