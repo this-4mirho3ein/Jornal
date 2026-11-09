@@ -39,13 +39,13 @@
 //          website's Accounts page). That file lives only in this terminal's
 //          data folder -- NEVER commit or sync it (spec rule 6, no secrets
 //          in the repo); filling InpApiKey here still works as an override.
-input string InpApiUrl        = "";       // empty = journal_url.txt, else local journal
+input string InpApiUrl        = "";       // full ingest URL, MUST end with /api/ingest
 input string InpApiKey        = "";       // empty = journal_key.txt in MQL5/Files
 input int    InpHeartbeatSec  = 60;       // heartbeat + queue flush period
 input int    InpTimeoutMs     = 8000;     // WebRequest timeout
 input int    InpBackfillDays  = 90;       // >0: send closed deals of last N days once at start
 input bool   InpVerbose       = true;     // log every HTTP status + queue flush
-input bool   InpBridgeMode    = false;    // true: EA only queues to disk; an external bridge (scripts/mt5-bridge.ts) drains the file — for mac/Wine hosts whose Options dialog cannot arm the WebRequest whitelist (ADR 0008)
+input bool   InpBridgeMode    = false;    // true = NO network: queue to disk only; run scripts/mt5-bridge.ts (mac/Wine, ADR 0008)
 
 const string QUEUE_FILE      = "journal_queue.jsonl"; // in MQL5/Files
 const string KEY_FILE        = "journal_key.txt";     // in MQL5/Files - local only, never committed
@@ -84,6 +84,14 @@ int OnInit()
    }
    g_apiUrl = (StringLen(InpApiUrl) >= 8) ? InpApiUrl : ReadConfigLine(URL_FILE);
    if(StringLen(g_apiUrl) < 8) g_apiUrl = DEFAULT_API_URL;
+
+   // Self-diagnosis for the two setup mistakes that silence the EA (both
+   // seen in the wild, 2026-11): a bare origin without the ingest path, and
+   // bridge mode left on with no bridge process running.
+   if(StringFind(g_apiUrl, "/api/ingest") < 0 || StringFind(g_apiUrl, "://") < 0)
+      Print("JournalSync: WARNING — url does not end with /api/ingest; every POST will fail. InpApiUrl must be the FULL endpoint, e.g. https://your-site.vercel.app/api/ingest. Current: ", g_apiUrl);
+   if(InpBridgeMode)
+      Print("JournalSync: BridgeMode=true — NO network sends. Events only go to MQL5\\Files\\journal_queue.jsonl until you run scripts/mt5-bridge.ts on this machine.");
 
    EventSetTimer(1);
    if(InpVerbose)
