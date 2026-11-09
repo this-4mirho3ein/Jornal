@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { ArchiveRestore, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -21,11 +21,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CopyButton } from "@/components/shared/copy-button";
+import { IngestKeyContent } from "@/app/(app)/accounts/ingest-key-reveal";
 import {
-  IngestKeyContent,
-  type IngestKeyResult,
-} from "@/app/(app)/accounts/ingest-key-reveal";
-import { createAccountWithKey } from "@/features/accounts/actions";
+  createAccountWithKey,
+  type CreateAccountData,
+} from "@/features/accounts/actions";
 
 /** Client-side mirror of createAccountSchema — transforms stay server-side. */
 const formSchema = z.object({
@@ -66,7 +66,7 @@ export function CreateAccountDialog({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [reveal, setReveal] = useState<IngestKeyResult | null>(null);
+  const [reveal, setReveal] = useState<CreateAccountData | null>(null);
   const {
     register,
     handleSubmit,
@@ -131,13 +131,39 @@ export function CreateAccountDialog({
           </DialogDescription>
         </DialogHeader>
         {reveal ? (
-          <div className="flex flex-col gap-3">
-            <IngestKeyContent result={reveal} />
-            <div className="flex justify-end gap-2">
-              <CopyButton value={reveal.key} label="Copy key" size="default" />
-              <Button onClick={() => handleOpenChange(false)}>I saved it</Button>
+          reveal.reactivated ? (
+            // Re-add of a removed account — nothing is created: the original
+            // row, its trades and its ingest key all come back untouched.
+            <div className="flex flex-col gap-3">
+              <p className="flex items-start gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
+                <ArchiveRestore className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <span>
+                  <strong>“{reveal.account.displayName}” is back.</strong> Its trades,
+                  MT5 binding and ingest key are exactly as they were — the EA keeps
+                  journaling with the key it already has.
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Lost the ingest key? Rotate it from the Accounts page — the old key
+                stops working the moment you rotate.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button onClick={() => handleOpenChange(false)}>Done</Button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Fresh creation — key is always present here (null only on the
+                  reactivation branch above). */}
+              <IngestKeyContent
+                result={{ key: reveal.key ?? "", keyPrefix: reveal.keyPrefix }}
+              />
+              <div className="flex justify-end gap-2">
+                <CopyButton value={reveal.key ?? ""} label="Copy key" size="default" />
+                <Button onClick={() => handleOpenChange(false)}>I saved it</Button>
+              </div>
+            </div>
+          )
         ) : (
           <form
             onSubmit={handleSubmit(onSubmit)}

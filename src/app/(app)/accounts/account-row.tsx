@@ -182,7 +182,7 @@ export function AccountRow({ account }: AccountRowProps) {
         open={archiveOpen}
         onOpenChange={setArchiveOpen}
         title={`Archive "${account.displayName}"?`}
-        description="Archived accounts disappear from lists and the switcher. Trades are kept; the ingest key stops working."
+        description="Archived accounts disappear from lists and the switcher. Nothing is deleted — trades and the ingest key stay, and adding the account again with the same login + server restores it."
         confirmLabel="Archive account"
         onConfirm={async () => {
           const result = await archiveAccount({

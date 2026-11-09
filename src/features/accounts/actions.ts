@@ -27,6 +27,16 @@ import {
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+export interface CreateAccountData {
+  account: TradingAccount;
+  /** The raw key, shown exactly once — null when a removed account was
+   * restored (its existing key keeps working; rotate to get a new one). */
+  key: string | null;
+  keyPrefix: string;
+  /** True when the dialog should show "welcome back", not a key reveal. */
+  reactivated: boolean;
+}
+
 /**
  * Fail-safe error mapping for account toasts — classification lives in
  * mapAccountActionError (pure + unit-tested): Zod issues surface their real
@@ -50,20 +60,26 @@ function revalidateAccountPages(): void {
  */
 export async function createAccountWithKey(
   input: unknown,
-): Promise<ActionResult<{ account: TradingAccount; key: string; keyPrefix: string }>> {
+): Promise<ActionResult<CreateAccountData>> {
   const user = await requireUser();
   try {
     const parsed = createAccountSchema.parse(input ?? {});
     const key = generateIngestKey();
 
     // The EA's first event binds a row to the terminal's real login+server
-    // (ADR 0007), so re-entering the same broker identity later collides with
-    // trading_accounts_user_login_server_uq. Catch it BEFORE the insert and
-    // point at the existing row (the wrapped-pg fallback stays in
-    // mapAccountActionError for race-proofing).
+    // (ADR 0007), so the same broker identity later collides with
+    // trading_accounts_user_login_server_uq. Two cases (2026-11 owner flow):
+    //   • row ACTIVE → refuse with a pointer to it;
+    //   • row ARCHIVED (the user removed it) → REACTIVATE it in place —
+    //     trades, binding and ingest key all come back untouched.
     if (parsed.login != null && parsed.server) {
-      const [duplicate] = await db
-        .select({ id: tradingAccounts.id, displayName: tradingAccounts.displayName })
+      const [existing] = await db
+        .select({
+          id: tradingAccounts.id,
+          displayName: tradingAccounts.displayName,
+          archivedAt: tradingAccounts.archivedAt,
+          keyPrefix: tradingAccounts.ingestKeyPrefix,
+        })
         .from(tradingAccounts)
         .where(
           and(
@@ -73,10 +89,27 @@ export async function createAccountWithKey(
           ),
         )
         .limit(1);
-      if (duplicate) {
+      if (existing) {
+        if (!existing.archivedAt) {
+          return {
+            ok: false,
+            error: `“${existing.displayName}” already uses this broker login + server — it's on your Accounts list. Attach the EA to that row, or rotate its key if you want a fresh one.`,
+          };
+        }
+        const [restored] = await db
+          .update(tradingAccounts)
+          .set({ archivedAt: null })
+          .where(eq(tradingAccounts.id, existing.id))
+          .returning();
+        revalidateAccountPages();
         return {
-          ok: false,
-          error: `“${duplicate.displayName}” already uses this broker login + server — it's on your Accounts list. Attach the EA to that row, or rotate its key if you want a fresh one.`,
+          ok: true,
+          data: {
+            account: restored,
+            key: null,
+            keyPrefix: existing.keyPrefix,
+            reactivated: true,
+          },
         };
       }
     }
@@ -97,7 +130,10 @@ export async function createAccountWithKey(
       .returning();
 
     revalidateAccountPages();
-    return { ok: true, data: { account, key, keyPrefix: account.ingestKeyPrefix } };
+    return {
+      ok: true,
+      data: { account, key, keyPrefix: account.ingestKeyPrefix, reactivated: false },
+    };
   } catch (error) {
     return onActionError(error);
   }
