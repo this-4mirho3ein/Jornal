@@ -46,7 +46,7 @@ const EA_INPUTS = [
   {
     name: "InpApiUrl",
     def: "—",
-    text: "Journal ingest endpoint. Empty = MQL5/Files/journal_url.txt when present, else the local journal. Set this for the live site, or put the URL (one line) in journal_url.txt.",
+    text: "Journal ingest endpoint — MUST be the full URL ending with /api/ingest (e.g. https://your-site.vercel.app/api/ingest). Empty = MQL5/Files/journal_url.txt when present, else the local journal. A bare domain without the path makes every send fail.",
   },
   {
     name: "InpApiKey",
@@ -339,7 +339,10 @@ export default function SetupGuidePage() {
             </li>
 
             <li className="rounded-xl border bg-card p-5 shadow-sm">
-              <StepHeader index={2} title="Install the Expert Advisor into the terminal" />
+              <StepHeader
+                index={2}
+                title="Install the Expert Advisor into the terminal"
+              />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
                 {EA_COMPILED_EXISTS ? (
                   <p>
@@ -388,8 +391,8 @@ export default function SetupGuidePage() {
                     .
                   </li>
                   <li>
-                    Copy the {EA_COMPILED_EXISTS ? ".ex5" : ".mq5"} file in there
-                    (keep its name).
+                    Copy the {EA_COMPILED_EXISTS ? ".ex5" : ".mq5"} file in there (keep
+                    its name).
                   </li>
                 </ol>
               </div>
@@ -421,21 +424,26 @@ export default function SetupGuidePage() {
             <li className="rounded-xl border bg-card p-5 shadow-sm">
               <StepHeader
                 index={4}
-                title={EA_COMPILED_EXISTS ? "Attach to ONE chart" : "Compile, then attach to ONE chart"}
+                title={
+                  EA_COMPILED_EXISTS
+                    ? "Attach to ONE chart"
+                    : "Compile, then attach to ONE chart"
+                }
               />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
                 {EA_COMPILED_EXISTS ? (
                   <p>
-                    The <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                    The{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                       .ex5
                     </code>{" "}
-                    you installed is already compiled — no MetaEditor step needed.
-                    (If you took the{" "}
+                    you installed is already compiled — no MetaEditor step needed. (If
+                    you took the{" "}
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                       .mq5
                     </code>{" "}
-                    source instead: press <strong>F4</strong> for the MetaQuotes
-                    editor, open{" "}
+                    source instead: press <strong>F4</strong> for the MetaQuotes editor,
+                    open{" "}
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                       JournalSync.mq5
                     </code>{" "}
@@ -449,8 +457,9 @@ export default function SetupGuidePage() {
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                       JournalSync.mq5
                     </code>{" "}
-                    from the Navigator’s Experts list and compile with <strong>F7</strong>{" "}
-                    — you want <em className="not-italic">0 errors</em> in the output.
+                    from the Navigator’s Experts list and compile with{" "}
+                    <strong>F7</strong> — you want{" "}
+                    <em className="not-italic">0 errors</em> in the output.
                   </p>
                 )}
                 <p>
@@ -467,7 +476,7 @@ export default function SetupGuidePage() {
             <li className="rounded-xl border bg-card p-5 shadow-sm">
               <StepHeader
                 index={5}
-                title="Point it at your journal (or leave it zero-config)"
+                title="Point it at your journal — the FULL endpoint URL"
               />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
                 <p>
@@ -475,13 +484,33 @@ export default function SetupGuidePage() {
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     InpApiKey
                   </code>{" "}
-                  and this endpoint into{" "}
+                  and paste this exact endpoint —{" "}
+                  <strong>the complete URL, ending in </strong>
+                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                    /api/ingest
+                  </code>{" "}
+                  — into{" "}
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     InpApiUrl
                   </code>
                   :
                 </p>
-                <CodeRow value={INGEST_URL} aria-label="Journal ingest endpoint URL" />
+                <CodeRow
+                  value={INGEST_URL}
+                  aria-label="Journal ingest endpoint URL — copy this into InpApiUrl"
+                />
+                <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                  <strong>The two most common mistakes:</strong> ① pasting the bare
+                  domain ( <code className="font-mono">https://…vercel.app</code>{" "}
+                  without
+                  <code className="font-mono"> /api/ingest</code>) — the EA sends to
+                  that string verbatim and every trade 404s; ② leaving{" "}
+                  <code className="font-mono">InpBridgeMode = true</code> — then the EA
+                  never uses the network at all (it only queues to disk and needs the
+                  separate bridge process, see the Mac note below). Keep{" "}
+                  <code className="font-mono">InpBridgeMode = false</code> on
+                  Windows/whitelisted setups.
+                </p>
                 <p>
                   Prefer files over inputs? Leave both inputs empty and put the key in{" "}
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
@@ -524,7 +553,73 @@ export default function SetupGuidePage() {
                   (dedupe-safe), and a <strong>demo</strong> trade appears on the
                   dashboard and Trades page in realtime — no refresh.
                 </p>
+                <p>
+                  If something is off, the EA now diagnoses itself: a URL without{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                    /api/ingest
+                  </code>{" "}
+                  or a bridge mode with no bridge running prints a loud{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                    WARNING
+                  </code>{" "}
+                  line in the Experts tab right at attach.
+                </p>
               </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      {/* macOS / Wine: the WebRequest whitelist may not stick (ADR 0008) */}
+      <section className="bg-muted/30">
+        <div className="mx-auto w-full max-w-3xl px-4 py-12 sm:py-16">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            On macOS (PlayOnMac/Wine/CrossOver)?
+          </h2>
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
+            MT5 runs under Wine on the Mac, and there the{" "}
+            <strong>Tools → Options → Expert Advisors → “Allow WebRequest…”</strong>{" "}
+            dialog sometimes refuses to save (the tick reverts after restart, the
+            Experts log keeps saying{" "}
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+              WebRequest error 4014/4060
+            </code>
+            ). Two ways through:
+          </p>
+          <ol className="mt-6 grid gap-4 sm:grid-cols-2">
+            <li className="rounded-xl border bg-card p-5 shadow-sm">
+              <h3 className="text-sm font-semibold">A — first try the standard way</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Tick the whitelist, add this origin, press OK, restart MT5 and check the
+                tick survived. If it did, keep{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                  InpBridgeMode = false
+                </code>{" "}
+                — everything just works, realtime, no extra process.
+              </p>
+            </li>
+            <li className="rounded-xl border bg-card p-5 shadow-sm">
+              <h3 className="text-sm font-semibold">
+                B — if the whitelist will not stick: bridge mode
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Set{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                  InpBridgeMode = true
+                </code>
+                : the EA safely queues every event to{" "}
+                <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                  MQL5/Files/journal_queue.jsonl
+                </code>{" "}
+                and a tiny script on your Mac delivers them. From the journal repo
+                folder:
+                <code className="mt-2 block overflow-x-auto rounded-lg border bg-muted/40 p-2.5 font-mono text-[11px] leading-relaxed">
+                  pnpm tsx scripts/mt5-bridge.ts \<br />
+                  &nbsp;&nbsp;--url https://…/api/ingest --key tj_…
+                </code>
+                Keep the window open while you trade, or run it whenever you want to
+                flush — queued events never expire.
+              </p>
             </li>
           </ol>
         </div>
