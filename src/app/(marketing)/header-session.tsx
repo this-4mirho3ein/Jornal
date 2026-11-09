@@ -9,7 +9,9 @@ import { auth } from "@/lib/auth/server";
 export function HeaderAuthActions() {
   return (
     <>
-      <Button asChild size="sm" variant="ghost">
+      {/* Hidden on the narrowest screens (the landing hero + footer keep the
+          sign-up path) so the three-zone header never collides there. */}
+      <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
         <a href="/login">Sign in</a>
       </Button>
       <Button asChild size="sm">

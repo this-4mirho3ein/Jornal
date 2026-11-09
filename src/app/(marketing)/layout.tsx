@@ -16,7 +16,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/70">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
+        {/* Three-zone header (owner request, 2026-11): logo left, nav exactly
+            centered (grid 1fr/auto/1fr), theme toggle + account right. The
+            anchors jump to the landing sections from any page ("#…" would
+            only work on "/"), and visibility tiers keep every viewport free
+            of collisions: Guide/Tools from 420px, section anchors from lg. */}
+        <div className="mx-auto grid h-14 w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4">
           <Link
             href="/"
             className="flex items-center gap-2 text-sm font-semibold tracking-tight"
@@ -30,38 +35,49 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               priority
               className="rounded-md"
             />
-            <span className="hidden min-[420px]:inline">Trading Journal</span>
+            <span className="hidden md:inline">Trading Journal</span>
           </Link>
-          <nav aria-label="Site" className="flex items-center gap-2 sm:gap-4">
+          <nav
+            aria-label="Site"
+            className="flex items-center justify-center gap-3 sm:gap-4"
+          >
             <Link
               href="/guide"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground min-[420px]:inline-block"
             >
               Guide
             </Link>
+            <Link
+              href="/tools/manager-pro"
+              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground min-[420px]:inline-block"
+            >
+              Tools
+            </Link>
             <a
-              href="#features"
-              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
+              href="/#features"
+              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               Features
             </a>
             <a
-              href="#how"
-              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
+              href="/#how"
+              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               How it works
             </a>
             <a
-              href="#faq"
-              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-block"
+              href="/#faq"
+              className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               FAQ
             </a>
+          </nav>
+          <div className="flex items-center justify-end gap-2">
             <ThemeToggle />
             <Suspense fallback={<HeaderAuthActions />}>
               <HeaderSession />
             </Suspense>
-          </nav>
+          </div>
         </div>
       </header>
 
@@ -80,7 +96,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             >
               ManagerPro EA
             </Link>
-            <a className="transition-colors hover:text-foreground" href="#faq">
+            <a className="transition-colors hover:text-foreground" href="/#faq">
               FAQ
             </a>
             <Link className="transition-colors hover:text-foreground" href="/login">
