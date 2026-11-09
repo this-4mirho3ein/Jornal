@@ -148,6 +148,9 @@ jobs:
           if (git diff --cached --quiet) {
             Write-Host "Nothing to publish (no change) — skipping commit"
           } else {
+            # The compile ran while the site may have moved ahead (docs Pushes
+            # are frequent) — rebase the two-file publish commit onto origin.
+            git pull --rebase --autostash origin main
             git commit -m $msg
             git push
           }
