@@ -570,18 +570,18 @@ export function FiltersBar({ initial, options }: FiltersProps) {
 }
 
 /**
- * Desktop filters (spec §11): CLOSED until wanted (owner request 2026-11).
- * The toggle carries the active-count badge; the panel auto-opens when the
- * URL already carries filters so shared links still show their context.
- * Collapsing unmounts the form — the URL stays the single source of truth
- * and reopening reconstructs the fields from the latest server `initial`.
+ * Desktop filters (spec §11): CLOSED until wanted (owner request, refined
+ * 2026-11) — always, even when the URL already carries filters; the active
+ * count badge and the chips row keep the applied filters discoverable while
+ * the panel stays shut. Reopening rebuilds the fields from the latest
+ * server `initial` (the URL remains the single source of truth).
  */
 export function FiltersDisclosure({
   initial,
   options,
   activeCount,
 }: FiltersProps & { activeCount: number }) {
-  const [open, setOpen] = useState(activeCount > 0);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-2">
