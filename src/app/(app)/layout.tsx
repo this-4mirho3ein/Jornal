@@ -97,7 +97,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Link
-              href="/dashboard"
+              href="/"
+              aria-label="Trading Journal — home"
               className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight"
             >
               <Image
