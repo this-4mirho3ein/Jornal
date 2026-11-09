@@ -22,6 +22,13 @@
       "when": 1794047081692,
       "tag": "0002_careful_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794222879726,
+      "tag": "0003_fancy_guardsmen",
+      "breakpoints": true
     }
   ]
 }

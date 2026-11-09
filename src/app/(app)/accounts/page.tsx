@@ -38,6 +38,7 @@ async function AccountsContent() {
     currency: account.currency,
     isDemo: account.isDemo,
     timezone: account.timezone,
+    defaultStyle: account.defaultStyle,
     keyPrefix: account.ingestKeyPrefix,
     level: connectionLevel(account.lastSeenAt, now),
     lastSeenLabel: lastSeenLabel(account.lastSeenAt, now),

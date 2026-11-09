@@ -25,7 +25,9 @@ export const STYLE_THRESHOLDS: StyleThresholds = {
   positionDays: 14,
 };
 
-export type TradeStyleValue = "scalp" | "day" | "swing" | "position";
+export const TRADE_STYLE_VALUES = ["scalp", "day", "swing", "position"] as const;
+
+export type TradeStyleValue = (typeof TRADE_STYLE_VALUES)[number];
 
 export interface ClassifyStyleInput {
   durationSeconds: number;

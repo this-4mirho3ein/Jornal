@@ -19,9 +19,17 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CopyButton } from "@/components/shared/copy-button";
 import { IngestKeyContent } from "@/app/(app)/accounts/ingest-key-reveal";
+import { styleLabels, TRADE_STYLE_VALUES } from "@/lib/trade-style";
 import {
   createAccountWithKey,
   type CreateAccountData,
@@ -45,6 +53,8 @@ const formSchema = z.object({
   server: z.string().trim().max(120).optional().or(z.literal("")),
   broker: z.string().trim().max(120).optional().or(z.literal("")),
   isDemo: z.boolean(),
+  /** "" = Auto (§9 holding time); otherwise the account-wide style. */
+  defaultStyle: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -56,6 +66,7 @@ const EMPTY_VALUES: FormValues = {
   server: "",
   broker: "",
   isDemo: false,
+  defaultStyle: "auto",
 };
 
 /** "New account" → captures details, then shows the one-time ingest key. */
@@ -71,14 +82,19 @@ export function CreateAccountDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: EMPTY_VALUES,
   });
+  const defaultStyleValue = watch("defaultStyle");
 
   async function onSubmit(values: FormValues) {
     const result = await createAccountWithKey({
+      defaultStyle:
+        values.defaultStyle === "auto" ? undefined : values.defaultStyle || undefined,
       displayName: values.displayName || undefined,
       currency: values.currency ? values.currency.toUpperCase() : undefined,
       login: values.login ? Number(values.login) : undefined,
@@ -242,6 +258,33 @@ export function CreateAccountDialog({
                   ) : null}
                 </Field>
               </div>
+              <Field>
+                <FieldLabel htmlFor="defaultStyle">Trading style</FieldLabel>
+                <Select
+                  value={defaultStyleValue}
+                  onValueChange={(value) =>
+                    setValue("defaultStyle", value, { shouldDirty: true })
+                  }
+                >
+                  <SelectTrigger id="defaultStyle">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">
+                      Auto — classified by holding time (§9)
+                    </SelectItem>
+                    {TRADE_STYLE_VALUES.map((style) => (
+                      <SelectItem key={style} value={style}>
+                        {styleLabels[style]} — every trade in this account
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Applies to every trade in this account (manual overrides on single
+                  trades still win); changeable any time from the ⋯ menu.
+                </p>
+              </Field>
               <Field>
                 <FieldLabel htmlFor="isDemo">Demo account</FieldLabel>
                 <div className="flex items-center gap-2">

@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import { db } from "@/db/client";
-import { tradingAccounts, type TradingAccount } from "@/db/schema";
+import { trades, tradingAccounts, type TradingAccount } from "@/db/schema";
 import { mapAccountActionError } from "@/features/accounts/action-errors";
+import { revalidateDashboardCache } from "@/features/dashboard/queries";
 import { requireUser } from "@/lib/auth/guards";
+import { classifyStyle, isSameTradingDay } from "@/lib/trade-style";
 import {
   ACTIVE_ACCOUNT_ALL,
   ACTIVE_ACCOUNT_COOKIE,
@@ -17,6 +19,7 @@ import {
   createAccountSchema,
   renameAccountSchema,
   rotateKeySchema,
+  setAccountDefaultStyleSchema,
   updateTimezoneSchema,
 } from "@/features/accounts/schemas";
 import {
@@ -132,6 +135,7 @@ export async function createAccountWithKey(
         broker: parsed.broker || null,
         currency: parsed.currency ?? "USD",
         isDemo: parsed.isDemo ?? false,
+        defaultStyle: parsed.defaultStyle ?? null,
         ingestKeyHash: hashIngestKey(key),
         ingestKeyPrefix: ingestKeyPrefix(key),
       })
@@ -162,6 +166,84 @@ export async function renameAccount(input: unknown): Promise<ActionResult<null>>
     if (updated.length === 0) return { ok: false, error: "Account not found." };
 
     revalidateAccountPages();
+    return { ok: true, data: null };
+  } catch (error) {
+    return onActionError(error);
+  }
+}
+
+/**
+ * Sets/clears the account-level trading style (owner request, 2026-11).
+ * When set: EVERY `style_source = 'auto'` trade on this account — open and
+ * closed — is tagged with it (never touching manual overrides). When
+ * cleared: closed auto trades re-classify by holding time with the same
+ * pure classifier the reducer uses (UTC-day semantics, matching ingest);
+ * open auto trades heal on their next event.
+ */
+export async function setAccountDefaultStyle(
+  input: unknown,
+): Promise<ActionResult<null>> {
+  const user = await requireUser();
+  try {
+    const parsed = setAccountDefaultStyleSchema.parse(input ?? {});
+    const [account] = await db
+      .select({ id: tradingAccounts.id })
+      .from(tradingAccounts)
+      .where(
+        and(
+          eq(tradingAccounts.id, parsed.accountId),
+          eq(tradingAccounts.userId, user.id),
+        ),
+      )
+      .limit(1);
+    if (!account) return { ok: false, error: "Account not found." };
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(tradingAccounts)
+        .set({ defaultStyle: parsed.defaultStyle })
+        .where(eq(tradingAccounts.id, account.id));
+
+      const autoScope = and(
+        eq(trades.accountId, account.id),
+        eq(trades.styleSource, "auto"),
+      );
+      if (parsed.defaultStyle) {
+        // "all my trades in this account is scalp or the swing" — every
+        // auto-style trade takes the chosen style (open + closed).
+        await tx.update(trades).set({ style: parsed.defaultStyle }).where(autoScope);
+      } else {
+        // Back to §9 auto: closed trades re-classify by holding time.
+        const autoClosed = await tx
+          .select({
+            id: trades.id,
+            durationSeconds: trades.durationSeconds,
+            openedAt: trades.openedAt,
+            closedAt: trades.closedAt,
+          })
+          .from(trades)
+          .where(and(autoScope, eq(trades.status, "closed")));
+        for (const trade of autoClosed) {
+          const style =
+            trade.durationSeconds != null && trade.openedAt && trade.closedAt
+              ? classifyStyle({
+                  durationSeconds: trade.durationSeconds,
+                  closedSameTradingDay: isSameTradingDay(
+                    trade.openedAt,
+                    trade.closedAt,
+                  ),
+                })
+              : null;
+          await tx
+            .update(trades)
+            .set({ style: style ?? "day" })
+            .where(eq(trades.id, trade.id));
+        }
+      }
+    });
+
+    revalidateAccountPages();
+    revalidateDashboardCache(user.id, parsed.accountId);
     return { ok: true, data: null };
   } catch (error) {
     return onActionError(error);

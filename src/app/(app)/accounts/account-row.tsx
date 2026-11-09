@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, MessageSquareWarning, Pencil, RotateCcw } from "lucide-react";
+import { Ellipsis, MessageSquareWarning, Pencil, RotateCcw, Tags } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,7 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ConnectionDot } from "@/components/shared/connection-dot";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { AccountStyleDialog } from "@/app/(app)/accounts/account-style-dialog";
 import { IngestKeyReveal } from "@/app/(app)/accounts/ingest-key-reveal";
+import { styleLabels, type TradeStyleValue } from "@/lib/trade-style";
 import type { ConnectionLevel } from "@/features/accounts/connection";
 import {
   archiveAccount,
@@ -44,6 +46,7 @@ export interface AccountRowData {
   currency: string;
   isDemo: boolean;
   timezone: string;
+  defaultStyle: TradeStyleValue | null;
   keyPrefix: string;
   lastSeenLabel: string;
   lastSeenAbsolute: string | null;
@@ -61,6 +64,7 @@ export function AccountRow({ account }: AccountRowProps) {
   const [reveal, setReveal] = useState<{ key: string; keyPrefix: string } | null>(null);
   const [rotateOpen, setRotateOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
 
   function handleError(result: { ok: boolean; error?: string }) {
     if (!result.ok) toast.error(result.error ?? "Something went wrong.");
@@ -96,6 +100,14 @@ export function AccountRow({ account }: AccountRowProps) {
           <Badge variant="outline" className="shrink-0 px-1.5 text-[10px]">
             {account.isDemo ? "DEMO" : "LIVE"}
           </Badge>
+          {account.defaultStyle ? (
+            <Badge
+              variant="outline"
+              className="shrink-0 border-profit/40 px-1.5 text-[10px] text-profit"
+            >
+              {styleLabels[account.defaultStyle]}
+            </Badge>
+          ) : null}
           <RenameInline currentName={account.displayName} onRename={handleRename} />
         </CardTitle>
         <CardDescription className="truncate">
@@ -137,6 +149,15 @@ export function AccountRow({ account }: AccountRowProps) {
                 }}
               >
                 Copy key prefix
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setStyleOpen(true);
+                }}
+              >
+                <Tags className="size-4" aria-hidden="true" />
+                Trading style…
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -198,6 +219,17 @@ export function AccountRow({ account }: AccountRowProps) {
           description="Copy it now; it is shown only once and replaces the old key immediately."
           result={reveal}
           onClose={() => setReveal(null)}
+        />
+      ) : null}
+      {styleOpen ? (
+        <AccountStyleDialog
+          accountId={account.id}
+          displayName={account.displayName}
+          current={account.defaultStyle}
+          onClose={() => {
+            setStyleOpen(false);
+            router.refresh();
+          }}
         />
       ) : null}
     </Card>

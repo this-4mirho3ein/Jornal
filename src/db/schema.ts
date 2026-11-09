@@ -183,6 +183,14 @@ export const tradingAccounts = pgTable(
     defaultStrategyId: uuid("default_strategy_id").references(() => strategies.id, {
       onDelete: "set null",
     }),
+    /**
+     * Account-level trading style (owner request, 2026-11): when set, every
+     * `style_source = 'auto'` trade on THIS account is tagged with it — open
+     * and closed — instead of the strategy default / holding-time
+     * classifier. Manual (`manual`) overrides are never touched. NULL =
+     * spec §9 auto behavior.
+     */
+    defaultStyle: tradeStyleEnum("default_style"),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     lastBalance: numeric("last_balance", { precision: 18, scale: 2 }),
     lastEquity: numeric("last_equity", { precision: 18, scale: 2 }),

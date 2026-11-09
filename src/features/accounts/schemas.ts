@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { TRADE_STYLE_VALUES } from "@/lib/trade-style";
+
 const accountId = z.uuid("Invalid account id");
 
 const optionalText = (max: number) =>
@@ -20,6 +22,8 @@ export const bindLoginFirstUseSchema = z.object({
     .optional(),
 });
 
+export const accountDefaultStyleSchema = z.enum(TRADE_STYLE_VALUES);
+
 export const createAccountSchema = z.object({
   /** Optional until the first bind; ingest then defaults it to `Login <login>`. */
   displayName: z.string().trim().max(80).optional(),
@@ -34,6 +38,15 @@ export const createAccountSchema = z.object({
   server: optionalText(120),
   broker: optionalText(120),
   login: z.number().int().positive().safe().optional(),
+  /** Account-level style: every auto-style trade in this account gets it
+   *  (owner request, 2026-11). Omitted/undefined = §9 holding-time auto. */
+  defaultStyle: accountDefaultStyleSchema.optional(),
+});
+
+export const setAccountDefaultStyleSchema = z.object({
+  accountId,
+  /** null clears the override → §9 holding-time auto behavior. */
+  defaultStyle: accountDefaultStyleSchema.nullable(),
 });
 
 export const renameAccountSchema = z.object({
@@ -63,6 +76,7 @@ export const updateTimezoneSchema = z.object({
 });
 
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
+export type SetAccountDefaultStyleInput = z.infer<typeof setAccountDefaultStyleSchema>;
 export type RenameAccountInput = z.infer<typeof renameAccountSchema>;
 export type RotateKeyInput = z.infer<typeof rotateKeySchema>;
 export type ArchiveAccountInput = z.infer<typeof archiveAccountSchema>;

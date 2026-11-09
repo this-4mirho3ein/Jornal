@@ -53,6 +53,11 @@ export interface TradePatchInput {
   tickSize: number | null;
   styleSource: "auto" | "manual";
   currentStyle: TradeStyleValue | null;
+  /** Account-level style (trading_accounts.default_style): when set, it IS
+   *  the auto style for every lifecycle stage of this account's trades —
+   *  open and closed — outranking the holding-time classifier and the
+   *  strategy default. NULL = spec §9 auto behavior. */
+  accountDefaultStyle?: TradeStyleValue | null;
 }
 
 export interface TradePatch {
@@ -118,13 +123,18 @@ export function isPriceUnset(value: string | null | undefined): boolean {
 }
 
 /** Null/0 → incoming; otherwise never overwrite (initial SL/TP rule, §4.1). */
-export function fillPriceOnce(current: string | null, incoming: string | null): string | null {
+export function fillPriceOnce(
+  current: string | null,
+  incoming: string | null,
+): string | null {
   if (!isPriceUnset(current)) return current;
   return incoming;
 }
 
 /** Composition of live SL/TP update + fill-if-unset for the initial values. */
-function applyStops(input: TradePatchInput): Pick<TradePatch, "sl" | "tp" | "initialSl" | "initialTp"> {
+function applyStops(
+  input: TradePatchInput,
+): Pick<TradePatch, "sl" | "tp" | "initialSl" | "initialTp"> {
   return {
     sl: input.incomingSl ?? input.currentSl,
     tp: input.incomingTp ?? input.currentTp,
@@ -141,27 +151,41 @@ export function computeTradePatch(input: TradePatchInput): TradePatch {
   const allTimes = deals.map((deal) => deal.timeUtc.getTime());
 
   // ---- Volume + weighted averages (§19: recompute from raw deals) ----------
-  const volumeOpened = ins.reduce((sum, deal) => sum.plus(dec(deal.volume)), new Decimal(0));
-  const volumeClosed = outs.reduce((sum, deal) => sum.plus(dec(deal.volume)), new Decimal(0));
+  const volumeOpened = ins.reduce(
+    (sum, deal) => sum.plus(dec(deal.volume)),
+    new Decimal(0),
+  );
+  const volumeClosed = outs.reduce(
+    (sum, deal) => sum.plus(dec(deal.volume)),
+    new Decimal(0),
+  );
 
-  const avgEntryPrice =
-    volumeOpened.isZero()
-      ? null
-      : ins.reduce(
+  const avgEntryPrice = volumeOpened.isZero()
+    ? null
+    : ins
+        .reduce(
           (sum, deal) => sum.plus(dec(deal.price).times(dec(deal.volume))),
           new Decimal(0),
-        ).dividedBy(volumeOpened);
+        )
+        .dividedBy(volumeOpened);
 
-  const avgExitPrice =
-    volumeClosed.isZero()
-      ? null
-      : outs.reduce(
+  const avgExitPrice = volumeClosed.isZero()
+    ? null
+    : outs
+        .reduce(
           (sum, deal) => sum.plus(dec(deal.price).times(dec(deal.volume))),
           new Decimal(0),
-        ).dividedBy(volumeClosed);
+        )
+        .dividedBy(volumeClosed);
 
-  const grossProfit = outs.reduce((sum, deal) => sum.plus(dec(deal.profit)), new Decimal(0));
-  const commission = deals.reduce((sum, deal) => sum.plus(dec(deal.commission)), new Decimal(0));
+  const grossProfit = outs.reduce(
+    (sum, deal) => sum.plus(dec(deal.profit)),
+    new Decimal(0),
+  );
+  const commission = deals.reduce(
+    (sum, deal) => sum.plus(dec(deal.commission)),
+    new Decimal(0),
+  );
   const swap = deals.reduce((sum, deal) => sum.plus(dec(deal.swap)), new Decimal(0));
   const fee = deals.reduce((sum, deal) => sum.plus(dec(deal.fee)), new Decimal(0));
   const netProfit = grossProfit.plus(commission).plus(swap).plus(fee);
@@ -172,7 +196,8 @@ export function computeTradePatch(input: TradePatchInput): TradePatch {
 
   // Fall back to the earliest deal of any kind when only exits have arrived
   // (out-of-order close-before-open) — the later deal_open deal heals it.
-  const openedAtMs = entryTimes.length > 0 ? Math.min(...entryTimes) : Math.min(...allTimes);
+  const openedAtMs =
+    entryTimes.length > 0 ? Math.min(...entryTimes) : Math.min(...allTimes);
   const closedAtMs = exitTimes.length > 0 ? Math.max(...exitTimes) : null;
 
   const hasEntries = !volumeOpened.isZero();
@@ -188,14 +213,23 @@ export function computeTradePatch(input: TradePatchInput): TradePatch {
       : null;
 
   // ---- Style (§9) — re-classify on close unless the user took over ---------
+  // An account-level default (owner request, 2026-11) outranks the holding
+  // time classifier for auto trades; manual overrides are never touched.
   let style: TradeStyleValue | null = null;
   if (isClosed && openedAt !== null && closedAt !== null) {
     if (input.styleSource === "auto") {
-      const duration = Math.max(0, Math.round((closedAt.getTime() - openedAt.getTime()) / 1000));
-      style = classifyStyle({
-        durationSeconds: duration,
-        closedSameTradingDay: isSameTradingDay(openedAt, closedAt),
-      });
+      if (input.accountDefaultStyle) {
+        style = input.accountDefaultStyle;
+      } else {
+        const duration = Math.max(
+          0,
+          Math.round((closedAt.getTime() - openedAt.getTime()) / 1000),
+        );
+        style = classifyStyle({
+          durationSeconds: duration,
+          closedSameTradingDay: isSameTradingDay(openedAt, closedAt),
+        });
+      }
     } else {
       style = input.currentStyle;
     }
@@ -204,7 +238,12 @@ export function computeTradePatch(input: TradePatchInput): TradePatch {
   // ---- Risk + R (§10): tick-value math only when the EA supplied it --------
   let riskAmount: Decimal | null = null;
   const initialSl = fillPriceOnce(input.currentInitialSl, input.incomingSl);
-  if (avgEntryPrice !== null && initialSl !== null && input.tickValue && input.tickSize) {
+  if (
+    avgEntryPrice !== null &&
+    initialSl !== null &&
+    input.tickValue &&
+    input.tickSize
+  ) {
     const slDistance = avgEntryPrice.minus(dec(initialSl)).abs();
     riskAmount = slDistance
       .dividedBy(new Decimal(input.tickSize))

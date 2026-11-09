@@ -48,14 +48,37 @@ function baseInput(overrides: Partial<TradePatchInput> = {}): TradePatchInput {
 
 /** open → tighten SL → partial close → final close (all 0.10 exit). */
 const fullLifecycle: ReducerDeal[] = [
-  deal({ timeAtSec: 0, entry: "in", price: "2320.50", volume: "0.10", commission: "-0.70" }),
-  deal({ timeAtSec: 1500, entry: "out", price: "2325.10", volume: "0.04", profit: "17.20", commission: "-0.30" }),
-  deal({ timeAtSec: 2400, entry: "out", price: "2331.00", volume: "0.06", profit: "23.30", commission: "-0.50", reason: "tp" }),
+  deal({
+    timeAtSec: 0,
+    entry: "in",
+    price: "2320.50",
+    volume: "0.10",
+    commission: "-0.70",
+  }),
+  deal({
+    timeAtSec: 1500,
+    entry: "out",
+    price: "2325.10",
+    volume: "0.04",
+    profit: "17.20",
+    commission: "-0.30",
+  }),
+  deal({
+    timeAtSec: 2400,
+    entry: "out",
+    price: "2331.00",
+    volume: "0.06",
+    profit: "23.30",
+    commission: "-0.50",
+    reason: "tp",
+  }),
 ];
 
 describe("computeTradePatch — full lifecycle (task 05 §7)", () => {
   it("aggregates from deals: volumes, weighted prices, signed pips", () => {
-    const patch = computeTradePatch(baseInput({ deals: fullLifecycle, direction: "buy" }));
+    const patch = computeTradePatch(
+      baseInput({ deals: fullLifecycle, direction: "buy" }),
+    );
     expect(patch.volumeOpened).toBe("0.10");
     expect(patch.volumeClosed).toBe("0.10");
     expect(patch.avgEntryPrice).toBe("2320.50000");
@@ -65,7 +88,9 @@ describe("computeTradePatch — full lifecycle (task 05 §7)", () => {
   });
 
   it("sets close state: closed_at, duration, close_reason, signed nets", () => {
-    const patch = computeTradePatch(baseInput({ deals: fullLifecycle, direction: "buy" }));
+    const patch = computeTradePatch(
+      baseInput({ deals: fullLifecycle, direction: "buy" }),
+    );
     expect(patch.status).toBe("closed");
     expect(patch.openedAt?.toISOString()).toBe("2026-03-10T09:30:00.000Z");
     expect(patch.closedAt?.toISOString()).toBe("2026-03-10T10:10:00.000Z");
@@ -81,27 +106,65 @@ describe("computeTradePatch — full lifecycle (task 05 §7)", () => {
       computeTradePatch(baseInput({ deals, direction: "buy", ...overrides }));
 
     // 14m59s → scalp; 15m01s same UTC day → day
-    const scalp = run([deal({ timeAtSec: 0, volume: "0.10" }), deal({ timeAtSec: 899, entry: "out", volume: "0.10", profit: "1" })]);
-    const dayEdge = run([deal({ timeAtSec: 0, volume: "0.10" }), deal({ timeAtSec: 901, entry: "out", volume: "0.10", profit: "1" })]);
+    const scalp = run([
+      deal({ timeAtSec: 0, volume: "0.10" }),
+      deal({ timeAtSec: 899, entry: "out", volume: "0.10", profit: "1" }),
+    ]);
+    const dayEdge = run([
+      deal({ timeAtSec: 0, volume: "0.10" }),
+      deal({ timeAtSec: 901, entry: "out", volume: "0.10", profit: "1" }),
+    ]);
     expect(scalp.style).toBe("scalp");
     expect(dayEdge.style).toBe("day");
 
     // overnight 25h → swing (no same-day), 15 days → position
-    const swing = run([deal({ timeAtSec: 0, volume: "0.10" }), deal({ timeAtSec: 25 * 3600, entry: "out", volume: "0.10", profit: "1" })]);
-    const position = run([deal({ timeAtSec: 0, volume: "0.10" }), deal({ timeAtSec: 15 * 86400, entry: "out", volume: "0.10", profit: "1" })]);
+    const swing = run([
+      deal({ timeAtSec: 0, volume: "0.10" }),
+      deal({ timeAtSec: 25 * 3600, entry: "out", volume: "0.10", profit: "1" }),
+    ]);
+    const position = run([
+      deal({ timeAtSec: 0, volume: "0.10" }),
+      deal({ timeAtSec: 15 * 86400, entry: "out", volume: "0.10", profit: "1" }),
+    ]);
     expect(swing.style).toBe("swing");
     expect(position.style).toBe("position");
 
     // manual style source is preserved on close
     const manual = run(
-      [deal({ timeAtSec: 0, volume: "0.10" }), deal({ timeAtSec: 1, entry: "out", volume: "0.10", profit: "9" })],
+      [
+        deal({ timeAtSec: 0, volume: "0.10" }),
+        deal({ timeAtSec: 1, entry: "out", volume: "0.10", profit: "9" }),
+      ],
       { styleSource: "manual", currentStyle: "swing" },
     );
     expect(manual.style).toBe("swing");
   });
 
+  it("account default style outranks the classifier for auto trades (2026-11)", () => {
+    const run = (deals: ReducerDeal[], overrides: Partial<TradePatchInput> = {}) =>
+      computeTradePatch(baseInput({ deals, direction: "buy", ...overrides }));
+    const quickScalp = [
+      deal({ timeAtSec: 0, volume: "0.10" }),
+      deal({ timeAtSec: 60, entry: "out", volume: "0.10", profit: "2" }),
+    ];
+    // sanity: 60 s close is a scalp by holding time
+    expect(run(quickScalp).style).toBe("scalp");
+    // the account-level default forces the style for auto trades…
+    expect(run(quickScalp, { accountDefaultStyle: "swing" }).style).toBe("swing");
+    expect(run(quickScalp, { accountDefaultStyle: "day" }).style).toBe("day");
+    // …and manual overrides still win
+    const manual = run(quickScalp, {
+      accountDefaultStyle: "swing",
+      styleSource: "manual",
+      currentStyle: "scalp",
+    });
+    expect(manual.style).toBe("scalp");
+  });
+
   it("keeps the trade open while volume remains (partial close)", () => {
-    const patch = computeTradePatch(baseInput({ deals: fullLifecycle.slice(0, 2), direction: "buy" }));
+    const patch = computeTradePatch(
+      baseInput({ deals: fullLifecycle.slice(0, 2), direction: "buy" }),
+    );
     expect(patch.status).toBe("open");
     expect(patch.closedAt).toBeNull();
     expect(patch.closeReason).toBeNull();
@@ -113,27 +176,45 @@ describe("computeTradePatch — order/transform invariants (§19)", () => {
   it("is deterministic — same deals recomputed give an identical patch (duplicate safety)", () => {
     const buildInput = (): TradePatchInput =>
       baseInput({
-        deals: fullLifecycle.map((d) => ({ ...d, timeUtc: new Date(d.timeUtc.getTime()) })),
+        deals: fullLifecycle.map((d) => ({
+          ...d,
+          timeUtc: new Date(d.timeUtc.getTime()),
+        })),
         direction: "buy",
       });
-    const first = JSON.parse(JSON.stringify(computeTradePatch(buildInput()))) as TradePatch;
-    const second = JSON.parse(JSON.stringify(computeTradePatch(buildInput()))) as TradePatch;
+    const first = JSON.parse(
+      JSON.stringify(computeTradePatch(buildInput())),
+    ) as TradePatch;
+    const second = JSON.parse(
+      JSON.stringify(computeTradePatch(buildInput())),
+    ) as TradePatch;
     expect(second).toEqual(first);
   });
 
   it("heals close-before-open delivery order (§5.1.7 out-of-order)", () => {
     // Exit deal delivered first (retry queue) — entry time is still 1000s later.
     const outFirst = [
-      deal({ timeAtSec: 3000, entry: "out", volume: "0.10", profit: "12.50", reason: "sl" }),
+      deal({
+        timeAtSec: 3000,
+        entry: "out",
+        volume: "0.10",
+        profit: "12.50",
+        reason: "sl",
+      }),
     ];
-    const stubOnly = computeTradePatch(baseInput({ deals: outFirst, direction: "buy" }));
+    const stubOnly = computeTradePatch(
+      baseInput({ deals: outFirst, direction: "buy" }),
+    );
     expect(stubOnly.status).toBe("open"); // no entry volume yet
     expect(stubOnly.openedAt?.toISOString()).toBe("2026-03-10T10:20:00.000Z");
 
     // …then the entry deal arrives; openedAt is recomputed from entry deals.
     const healed = computeTradePatch(
       baseInput({
-        deals: [...outFirst, deal({ timeAtSec: 1000, volume: "0.10", price: "2321.00" })],
+        deals: [
+          ...outFirst,
+          deal({ timeAtSec: 1000, volume: "0.10", price: "2321.00" }),
+        ],
         direction: "buy",
       }),
     );
@@ -147,7 +228,12 @@ describe("computeTradePatch — order/transform invariants (§19)", () => {
 
   it("never overwrites initial_sl/tp once set (§4.1)", () => {
     const first = computeTradePatch(
-      baseInput({ deals: fullLifecycle, direction: "buy", incomingSl: "2310.50000", incomingTp: "2350.00000" }),
+      baseInput({
+        deals: fullLifecycle,
+        direction: "buy",
+        incomingSl: "2310.50000",
+        incomingTp: "2350.00000",
+      }),
     );
     expect(first.initialSl).toBe("2310.50000");
     expect(first.initialTp).toBe("2350.00000");
@@ -184,12 +270,19 @@ describe("risk / r_multiple / stops helpers (§10)", () => {
     expect(withTicks.riskAmount).toBe("100.00");
     expect(withTicks.rMultiple).toBe("0.3900");
 
-    const withoutTicks = computeTradePatch(baseInput({ deals: fullLifecycle, direction: "buy", incomingSl: "2310.50000" }));
+    const withoutTicks = computeTradePatch(
+      baseInput({ deals: fullLifecycle, direction: "buy", incomingSl: "2310.50000" }),
+    );
     expect(withoutTicks.riskAmount).toBeNull();
     expect(withoutTicks.rMultiple).toBeNull();
 
     const noSl = computeTradePatch(
-      baseInput({ deals: fullLifecycle, direction: "buy", tickValue: 1, tickSize: 0.01 }),
+      baseInput({
+        deals: fullLifecycle,
+        direction: "buy",
+        tickValue: 1,
+        tickSize: 0.01,
+      }),
     );
     expect(noSl.riskAmount).toBeNull();
     expect(noSl.initialSl).toBeNull();

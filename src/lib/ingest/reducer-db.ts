@@ -33,8 +33,7 @@ import { assignStrategy, type MagicMap } from "./strategy-assignment";
 import { epochToDate, priceOrNull, type IngestEvent } from "./schemas";
 
 export type ApplyResult =
-  | { duplicate: true; tradeId: null }
-  | { duplicate: false; tradeId: string | null };
+  { duplicate: true; tradeId: null } | { duplicate: false; tradeId: string | null };
 
 /** Max one snapshot per 30 s per account (spec §4.3 balance_snapshots). */
 const SNAPSHOT_THROTTLE_MS = 30_000;
@@ -124,7 +123,10 @@ export async function applyIngestEvent(
         return { duplicate: false, tradeId: null };
       }
       case "position_modify":
-        return { duplicate: false, tradeId: await applyPositionModify(tx, account.id, event) };
+        return {
+          duplicate: false,
+          tradeId: await applyPositionModify(tx, account.id, event),
+        };
       case "deal_open":
       case "deal_close":
         return { duplicate: false, tradeId: await applyDealEvent(tx, account, event) };
@@ -132,7 +134,12 @@ export async function applyIngestEvent(
   });
 }
 
-async function maybeWriteSnapshot(tx: Tx, accountId: string, event: IngestEvent, now: Date): Promise<void> {
+async function maybeWriteSnapshot(
+  tx: Tx,
+  accountId: string,
+  event: IngestEvent,
+  now: Date,
+): Promise<void> {
   const [last] = await tx
     .select({ recordedAt: balanceSnapshots.recordedAt })
     .from(balanceSnapshots)
@@ -140,10 +147,7 @@ async function maybeWriteSnapshot(tx: Tx, accountId: string, event: IngestEvent,
     .orderBy(desc(balanceSnapshots.recordedAt))
     .limit(1);
 
-  if (
-    last &&
-    now.getTime() - last.recordedAt.getTime() < SNAPSHOT_THROTTLE_MS
-  ) {
+  if (last && now.getTime() - last.recordedAt.getTime() < SNAPSHOT_THROTTLE_MS) {
     return;
   }
   await tx.insert(balanceSnapshots).values({
@@ -155,7 +159,11 @@ async function maybeWriteSnapshot(tx: Tx, accountId: string, event: IngestEvent,
   });
 }
 
-async function applyCashOp(tx: Tx, accountId: string, event: IngestEvent): Promise<void> {
+async function applyCashOp(
+  tx: Tx,
+  accountId: string,
+  event: IngestEvent,
+): Promise<void> {
   const deal = event.deal;
   if (!deal) return; // refine guarantees presence; keeps types honest
   await tx
@@ -172,14 +180,20 @@ async function applyCashOp(tx: Tx, accountId: string, event: IngestEvent): Promi
 }
 
 /** sl/tp only; initial_* filled from the event when unset (§5.1.7). */
-async function applyPositionModify(tx: Tx, accountId: string, event: IngestEvent): Promise<string | null> {
+async function applyPositionModify(
+  tx: Tx,
+  accountId: string,
+  event: IngestEvent,
+): Promise<string | null> {
   const position = event.position;
   if (!position) return null;
 
   const [trade] = await tx
     .select()
     .from(trades)
-    .where(and(eq(trades.accountId, accountId), eq(trades.positionId, position.positionId)))
+    .where(
+      and(eq(trades.accountId, accountId), eq(trades.positionId, position.positionId)),
+    )
     .for("update");
   if (!trade) return null; // unknown position — modify cannot create one
 
@@ -200,7 +214,11 @@ async function applyPositionModify(tx: Tx, accountId: string, event: IngestEvent
 /** deal_open / deal_close — upsert trade by (account, position), recomputing
  *  the full patch from ALL deals afterwards (§19). Creates a stub when the
  *  close arrived first; out-of-order heals on the later deal_open. */
-async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEvent): Promise<string | null> {
+async function applyDealEvent(
+  tx: Tx,
+  account: TradingAccount,
+  event: IngestEvent,
+): Promise<string | null> {
   const { id: accountId, userId } = account;
   const position = event.position;
   const deal = event.deal;
@@ -209,7 +227,9 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
   let [trade] = await tx
     .select()
     .from(trades)
-    .where(and(eq(trades.accountId, accountId), eq(trades.positionId, position.positionId)))
+    .where(
+      and(eq(trades.accountId, accountId), eq(trades.positionId, position.positionId)),
+    )
     .for("update");
 
   if (!trade) {
@@ -239,7 +259,12 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
       [trade] = await tx
         .select()
         .from(trades)
-        .where(and(eq(trades.accountId, accountId), eq(trades.positionId, position.positionId)))
+        .where(
+          and(
+            eq(trades.accountId, accountId),
+            eq(trades.positionId, position.positionId),
+          ),
+        )
         .for("update");
     }
     if (!trade) return null;
@@ -267,22 +292,35 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
   // Strategy assignment only when the trade has none yet (§5.1.7). Precedence:
   // magic map → S:comment code → account default (ADR 0009) → unassigned.
   let strategyId = trade.strategyId;
-  let strategyRowsForStyle: { id: string; code: string; defaultStyle: TradeStyle | null }[] = [];
+  let strategyRowsForStyle: {
+    id: string;
+    code: string;
+    defaultStyle: TradeStyle | null;
+  }[] = [];
   const needsAssignment =
     !strategyId &&
     (position.magic !== undefined || !!position.comment || !!account.defaultStrategyId);
   if (needsAssignment) {
     const [mapRows, strategyRows] = await Promise.all([
       tx
-        .select({ magic: magicStrategyMap.magic, strategyId: magicStrategyMap.strategyId })
+        .select({
+          magic: magicStrategyMap.magic,
+          strategyId: magicStrategyMap.strategyId,
+        })
         .from(magicStrategyMap)
         .where(eq(magicStrategyMap.accountId, accountId)),
       tx
-        .select({ id: strategies.id, code: strategies.code, defaultStyle: strategies.defaultStyle })
+        .select({
+          id: strategies.id,
+          code: strategies.code,
+          defaultStyle: strategies.defaultStyle,
+        })
         .from(strategies)
         .where(eq(strategies.userId, userId)),
     ]);
-    const magicMap: MagicMap = new Map(mapRows.map((row) => [row.magic, row.strategyId]));
+    const magicMap: MagicMap = new Map(
+      mapRows.map((row) => [row.magic, row.strategyId]),
+    );
     strategyRowsForStyle = strategyRows;
     strategyId = assignStrategy({
       magic: position.magic ?? null,
@@ -293,10 +331,13 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
     }).strategyId;
   }
 
-  // Open trades carry the strategy default style or "day" (§9); closed ones
-  // are re-classified by time inside the pure patch (unless manual).
+  // Open trades carry the account default style (owner request, 2026-11),
+  // else the strategy default, else "day" (§9); closed ones are decided by
+  // the pure patch (account default → time classifier, unless manual).
   const openStyle: TradeStyle =
-    strategyRowsForStyle.find((row) => row.id === strategyId)?.defaultStyle ?? "day";
+    account.defaultStyle ??
+    strategyRowsForStyle.find((row) => row.id === strategyId)?.defaultStyle ??
+    "day";
 
   const dealRows = await tx
     .select({
@@ -339,6 +380,7 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
     tickSize: position.tickSize ?? null,
     styleSource: trade.styleSource,
     currentStyle: trade.style,
+    accountDefaultStyle: account.defaultStyle ?? null,
   });
 
   const finalStyle: TradeStyle | null =
@@ -365,7 +407,9 @@ async function applyDealEvent(tx: Tx, account: TradingAccount, event: IngestEven
       netProfit: patch.netProfit,
       balanceAtOpen: trade.balanceAtOpen ?? money(event.account.balance),
       balanceAtClose:
-        patch.status === "closed" ? (trade.balanceAtClose ?? money(event.account.balance)) : null,
+        patch.status === "closed"
+          ? (trade.balanceAtClose ?? money(event.account.balance))
+          : null,
       riskAmount: patch.riskAmount,
       rMultiple: patch.rMultiple,
       pipsOrPoints: patch.pipsOrPoints,

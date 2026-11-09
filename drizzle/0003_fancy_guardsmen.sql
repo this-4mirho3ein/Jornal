@@ -1,0 +1,1 @@
+ALTER TABLE "trading_accounts" ADD COLUMN "default_style" "trade_style";
