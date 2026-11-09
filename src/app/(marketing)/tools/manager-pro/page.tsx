@@ -24,10 +24,10 @@ const DOWNLOAD = "/download/J-ManagerPro-V7.ex5";
 /** Ship facts — surfaced so downloaders can verify what they got. */
 const FILE = {
   name: "J-ManagerPro-V7.ex5",
-  version: "V7",
+  version: "V7 (latest build 2026-11-09)",
   format: ".ex5 (pre-compiled — no MetaEditor needed)",
-  size: "132.6 KB",
-  sha256: "a08f2ce220517d47b76cb722ef9282012385b95ffea440918257fdf28b20f261",
+  size: "138,212 bytes",
+  sha256: "894e71fc60de266380cd2c14ee44524e0719a500b1d23a98d458baf6901fafbd",
   updated: "2026-11-09",
   origin: new URL(DOWNLOAD, siteUrl()).toString(),
 } as const;
