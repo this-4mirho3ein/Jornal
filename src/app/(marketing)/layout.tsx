@@ -53,24 +53,24 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             >
               Tools
             </Link>
-            <a
+            <Link
               href="/#features"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               Features
-            </a>
-            <a
+            </Link>
+            <Link
               href="/#how"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               How it works
-            </a>
-            <a
+            </Link>
+            <Link
               href="/#faq"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground lg:inline-block"
             >
               FAQ
-            </a>
+            </Link>
           </nav>
           <div className="flex items-center justify-end gap-2">
             <ThemeToggle />
@@ -96,9 +96,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             >
               ManagerPro EA
             </Link>
-            <a className="transition-colors hover:text-foreground" href="/#faq">
+            <Link className="transition-colors hover:text-foreground" href="/#faq">
               FAQ
-            </a>
+            </Link>
             <Link className="transition-colors hover:text-foreground" href="/login">
               Sign in
             </Link>
