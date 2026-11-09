@@ -1,11 +1,11 @@
-import { Activity, Download, PlugZap } from "lucide-react";
+import { Download, Filter, PlugZap, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { FilterChips } from "@/app/(app)/trades/filter-chips";
 import {
-  FiltersBar,
+  FiltersDisclosure,
   FiltersSheet,
   type FilterOptions,
 } from "@/app/(app)/trades/filters";
@@ -15,14 +15,8 @@ import { TradeTable } from "@/app/(app)/trades/trade-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getUserStrategies } from "@/features/strategies/queries";
-import {
-  getTradesPage,
-  resolveTradesView,
-} from "@/features/trades/queries";
-import {
-  countActiveFilters,
-  tradesFiltersToQuery,
-} from "@/features/trades/schemas";
+import { getTradesPage, resolveTradesView } from "@/features/trades/queries";
+import { countActiveFilters, tradesFiltersToQuery } from "@/features/trades/schemas";
 import { getCurrentUser } from "@/lib/auth/guards";
 
 export const metadata: Metadata = { title: "Trades" };
@@ -55,6 +49,32 @@ async function TradesContent({
   const params = await searchParams;
   const user = await getCurrentUser();
   const view = await resolveTradesView(user.id, params);
+
+  // Trades read only through a selected account (owner decision 2026-11):
+  // covers both the switcher's "All accounts" sentinel (accountId === null)
+  // and a user who has not added any account yet — the list never fakes an
+  // aggregate the account model does not define.
+  if (view.accountId === null) {
+    return view.accounts.length === 0 ? (
+      <EmptyState
+        icon={Wallet}
+        title="Add an MT5 account first"
+        description="Trades belong to an MT5 account — create one here and attach the EA, then everything syncs into it automatically."
+        action={
+          <Button asChild size="sm">
+            <Link href="/accounts">Add your first account</Link>
+          </Button>
+        }
+      />
+    ) : (
+      <EmptyState
+        icon={Wallet}
+        title="Pick an account to see its trades"
+        description="Trades are stored per MT5 account. Choose one with the account switcher at the top (currently “All accounts”)."
+      />
+    );
+  }
+
   const filters = view.filters;
   const [strategies, data] = await Promise.all([
     getUserStrategies(user.id, { includeArchived: true }),
@@ -72,14 +92,11 @@ async function TradesContent({
     mistakes: view.facets.mistakeTags,
   };
   const strategyLabels = new Map(strategies.map((s) => [s.id, s.name]));
-  const accountLabel = view.accountId
-    ? (data.rows[0]?.accountName ?? null)
-    : null;
+  const accountLabel = view.accountId ? (data.rows[0]?.accountName ?? null) : null;
 
   const activeCount = countActiveFilters(filters);
   const hasUserFilter =
-    countActiveFilters({ ...filters, account: undefined, sort: "opened_desc" }) >
-    0;
+    countActiveFilters({ ...filters, account: undefined, sort: "opened_desc" }) > 0;
 
   return (
     <>
@@ -109,7 +126,11 @@ async function TradesContent({
       </div>
 
       <div className="hidden md:block">
-        <FiltersBar initial={filters} options={options} />
+        <FiltersDisclosure
+          initial={filters}
+          options={options}
+          activeCount={activeCount}
+        />
       </div>
 
       <FilterChips
@@ -121,7 +142,7 @@ async function TradesContent({
       {data.rows.length === 0 ? (
         hasUserFilter ? (
           <EmptyState
-            icon={Activity}
+            icon={Filter}
             title="No trades match these filters"
             description="Try widening the date range or removing a chip."
             action={

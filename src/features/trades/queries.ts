@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { strategies, trades, tradingAccounts } from "@/db/schema";
+import { type TradingAccount, strategies, trades, tradingAccounts } from "@/db/schema";
 import { getActiveAccount } from "@/features/accounts/active-account";
 import {
   parseTradesFilters,
@@ -208,6 +208,8 @@ export interface ResolvedTrades {
   filters: TradesFilters;
   /** Resolved account (null = "All accounts" aggregate view). */
   accountId: string | null;
+  /** Every non-archived account — lets pages render no-account states. */
+  accounts: TradingAccount[];
   timezone: string;
   facets: TradeFacets;
 }
@@ -240,6 +242,7 @@ export async function resolveTradesView(
   return {
     filters,
     accountId: accountId ?? null,
+    accounts: active.accounts,
     timezone: active.account?.timezone ?? "UTC",
     facets: {
       symbols: symbolRows.map((r) => r.symbol),
@@ -255,11 +258,8 @@ async function tagFacets(
   accountId: string | undefined,
   kind: "setup" | "mistake",
 ): Promise<Array<{ tag: string; count: number }>> {
-  const column =
-    kind === "setup" ? sql.raw("t.setup_tags") : sql.raw("t.mistake_tags");
-  const accountCond = accountId
-    ? sql` and a.id = ${accountId}`
-    : sql``;
+  const column = kind === "setup" ? sql.raw("t.setup_tags") : sql.raw("t.mistake_tags");
+  const accountCond = accountId ? sql` and a.id = ${accountId}` : sql``;
   const result = await db.execute(
     sql`select unnest(${column}) as tag, count(*)::int as n
         from trades t
@@ -268,8 +268,8 @@ async function tagFacets(
         group by 1 order by 2 desc, 1 asc limit 40`,
   );
   // node-postgres returns { rows }, the Neon driver returns arrays — accept both.
-  const raw = (
-    result as unknown as { rows?: Array<{ tag: string; n: number }> }
-  ).rows ?? (result as unknown as Array<{ tag: string; n: number }>);
+  const raw =
+    (result as unknown as { rows?: Array<{ tag: string; n: number }> }).rows ??
+    (result as unknown as Array<{ tag: string; n: number }>);
   return raw.map((r) => ({ tag: String(r.tag), count: Number(r.n) }));
 }

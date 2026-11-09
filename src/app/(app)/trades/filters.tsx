@@ -110,7 +110,10 @@ function presetRange(preset: Exclude<PresetKey, "">): {
       return { from: iso(from), to: iso(now) };
     }
     case "month":
-      return { from: `${String(y).padStart(4, "0")}-${String(m + 1).padStart(2, "0")}-01`, to: iso(now) };
+      return {
+        from: `${String(y).padStart(4, "0")}-${String(m + 1).padStart(2, "0")}-01`,
+        to: iso(now),
+      };
     case "last_month": {
       const first = new Date(Date.UTC(y, m - 1, 1));
       const last = new Date(Date.UTC(y, m, 0));
@@ -206,18 +209,9 @@ function Segmented<T extends string>({
   );
 }
 
-function FieldLabel({
-  children,
-  htmlFor,
-}: {
-  children: string;
-  htmlFor?: string;
-}) {
+function FieldLabel({ children, htmlFor }: { children: string; htmlFor?: string }) {
   return (
-    <label
-      htmlFor={htmlFor}
-      className="text-xs font-medium text-muted-foreground"
-    >
+    <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
       {children}
     </label>
   );
@@ -356,11 +350,7 @@ function FiltersFields({
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <FieldLabel>Style</FieldLabel>
-        <div
-          role="group"
-          aria-label="Trade styles"
-          className="flex flex-wrap gap-1.5"
-        >
+        <div role="group" aria-label="Trade styles" className="flex flex-wrap gap-1.5">
           {styleOptions.map((style) => {
             const active = form.styles.includes(style.value);
             return (
@@ -431,7 +421,7 @@ function FiltersFields({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="grid col-span-2 gap-1.5">
+        <div className="col-span-2 grid gap-1.5">
           <FieldLabel htmlFor={`${idPrefix}-preset`}>Date range (UTC)</FieldLabel>
           <Select
             value={form.preset}
@@ -575,6 +565,41 @@ export function FiltersBar({ initial, options }: FiltersProps) {
           if (!("q" in patch)) push(next);
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Desktop filters (spec §11): CLOSED until wanted (owner request 2026-11).
+ * The toggle carries the active-count badge; the panel auto-opens when the
+ * URL already carries filters so shared links still show their context.
+ * Collapsing unmounts the form — the URL stays the single source of truth
+ * and reopening reconstructs the fields from the latest server `initial`.
+ */
+export function FiltersDisclosure({
+  initial,
+  options,
+  activeCount,
+}: FiltersProps & { activeCount: number }) {
+  const [open, setOpen] = useState(activeCount > 0);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <Filter className="size-4" aria-hidden="true" />
+        {open ? "Hide filters" : "Filters"}
+        {activeCount > 0 ? (
+          <Badge className="ml-1 h-5 px-1.5">{activeCount}</Badge>
+        ) : null}
+      </Button>
+      {open ? <FiltersBar initial={initial} options={options} /> : null}
     </div>
   );
 }
