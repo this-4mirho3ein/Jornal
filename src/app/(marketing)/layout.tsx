@@ -51,7 +51,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               href="/tools/manager-pro"
               className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground min-[420px]:inline-block"
             >
-              Tools
+              ManagerPro
             </Link>
             <Link
               href="/#features"
