@@ -46,7 +46,7 @@ const EA_INPUTS = [
   {
     name: "InpApiUrl",
     def: "—",
-    text: "Journal ingest endpoint — MUST be the full URL ending with /api/ingest (e.g. https://your-site.vercel.app/api/ingest). Empty = MQL5/Files/journal_url.txt when present, else the local journal. A bare domain without the path makes every send fail.",
+    text: "Leave EMPTY for this site — the journal URL (https://amirosein-journal.vercel.app/api/ingest) is built into the EA. Fill only if you self-host, and then it MUST be the full endpoint ending with /api/ingest; a bare domain makes every send fail.",
   },
   {
     name: "InpApiKey",
@@ -476,7 +476,7 @@ export default function SetupGuidePage() {
             <li className="rounded-xl border bg-card p-5 shadow-sm">
               <StepHeader
                 index={5}
-                title="Point it at your journal — the FULL endpoint URL"
+                title="Paste only your key — the site URL is already built in"
               />
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
                 <p>
@@ -484,27 +484,24 @@ export default function SetupGuidePage() {
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     InpApiKey
                   </code>{" "}
-                  and paste this exact endpoint —{" "}
-                  <strong>the complete URL, ending in </strong>
-                  <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                    /api/ingest
-                  </code>{" "}
-                  — into{" "}
+                  and <strong>leave </strong>
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     InpApiUrl
-                  </code>
-                  :
+                  </code>{" "}
+                  <strong>empty</strong> — with empty inputs the EA talks to this
+                  journal automatically:
                 </p>
                 <CodeRow
                   value={INGEST_URL}
-                  aria-label="Journal ingest endpoint URL — copy this into InpApiUrl"
+                  aria-label="Journal ingest endpoint URL — built into the EA by default"
                 />
                 <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
-                  <strong>The two most common mistakes:</strong> ① pasting the bare
-                  domain ( <code className="font-mono">https://…vercel.app</code>{" "}
-                  without
-                  <code className="font-mono"> /api/ingest</code>) — the EA sends to
-                  that string verbatim and every trade 404s; ② leaving{" "}
+                  <strong>The two most common mistakes:</strong> ① typing an InpApiUrl
+                  override that is a bare domain — if you ever fill it in, it must be
+                  the full endpoint ending in{" "}
+                  <code className="font-mono">/api/ingest</code> (the EA sends to that
+                  string verbatim; an override without the path makes every trade 404 —
+                  for this site, leave it EMPTY); ② leaving{" "}
                   <code className="font-mono">InpBridgeMode = true</code> — then the EA
                   never uses the network at all (it only queues to disk and needs the
                   separate bridge process, see the Mac note below). Keep{" "}
@@ -516,13 +513,12 @@ export default function SetupGuidePage() {
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
                     MQL5/Files/journal_key.txt
                   </code>{" "}
-                  and the URL in{" "}
+                  — then you never touch the inputs again, and the key file stays inside
+                  this terminal’s data folder. Inputs override the files (and a{" "}
                   <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                    MQL5/Files/journal_url.txt
+                    journal_url.txt
                   </code>{" "}
-                  (one line each) — then you never touch the inputs again, and the key
-                  file stays inside this terminal’s data folder. Inputs override the
-                  files.
+                  can override the built-in URL if you ever self-host the journal).
                 </p>
                 <p className="text-xs">
                   Optional inputs (defaults are fine):{" "}
