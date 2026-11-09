@@ -3,10 +3,10 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { ZodError } from "zod";
 
 import { db } from "@/db/client";
 import { tradingAccounts, type TradingAccount } from "@/db/schema";
+import { mapAccountActionError } from "@/features/accounts/action-errors";
 import { requireUser } from "@/lib/auth/guards";
 import {
   ACTIVE_ACCOUNT_ALL,
@@ -28,31 +28,14 @@ import {
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 /**
- * Fail-safe error mapping for account toasts: validation issues surface their
- * real message; Postgres unique violations (re-adding the same
- * user+login+server — trading_accounts_user_login_server_uq) get an
- * actionable hint instead of a catch-all, which is exactly what the owner
- * hit when re-adding the already-bound Demo Account (2026-11).
+ * Fail-safe error mapping for account toasts — classification lives in
+ * mapAccountActionError (pure + unit-tested): Zod issues surface their real
+ * message and drizzle-wrapped 23505 unique violations (re-adding a login the
+ * EA already bound — the owner hit this 2026-11) get an actionable hint.
  */
 function onActionError(error: unknown): { ok: false; error: string } {
   console.error("[accounts:action]", error);
-  if (error instanceof ZodError) {
-    const issue = error.issues[0];
-    return { ok: false, error: issue?.message ?? "Invalid input." };
-  }
-  const asRecord = (error ?? {}) as { code?: unknown; constraint?: unknown };
-  const isUnique =
-    asRecord.code === "23505" ||
-    (typeof asRecord.constraint === "string" &&
-      asRecord.constraint.includes("login_server"));
-  if (isUnique) {
-    return {
-      ok: false,
-      error:
-        "An account with this broker login + server already exists — it is already on your Accounts list. Attach the EA to it or rotate its key instead of creating a duplicate.",
-    };
-  }
-  return { ok: false, error: "Something went wrong. Please try again." };
+  return { ok: false, error: mapAccountActionError(error) };
 }
 
 function revalidateAccountPages(): void {
@@ -72,6 +55,31 @@ export async function createAccountWithKey(
   try {
     const parsed = createAccountSchema.parse(input ?? {});
     const key = generateIngestKey();
+
+    // The EA's first event binds a row to the terminal's real login+server
+    // (ADR 0007), so re-entering the same broker identity later collides with
+    // trading_accounts_user_login_server_uq. Catch it BEFORE the insert and
+    // point at the existing row (the wrapped-pg fallback stays in
+    // mapAccountActionError for race-proofing).
+    if (parsed.login != null && parsed.server) {
+      const [duplicate] = await db
+        .select({ id: tradingAccounts.id, displayName: tradingAccounts.displayName })
+        .from(tradingAccounts)
+        .where(
+          and(
+            eq(tradingAccounts.userId, user.id),
+            eq(tradingAccounts.login, parsed.login),
+            eq(tradingAccounts.server, parsed.server),
+          ),
+        )
+        .limit(1);
+      if (duplicate) {
+        return {
+          ok: false,
+          error: `“${duplicate.displayName}” already uses this broker login + server — it's on your Accounts list. Attach the EA to that row, or rotate its key if you want a fresh one.`,
+        };
+      }
+    }
 
     const [account] = await db
       .insert(tradingAccounts)
